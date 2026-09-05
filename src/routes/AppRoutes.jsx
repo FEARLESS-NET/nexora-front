@@ -401,7 +401,7 @@ const NexoraIntro = ({ onFinish }) => {
                   border
                   border-green-200/20
                   shadow-[0_0_50px_rgba(34,197,94,0.25)]
-                  animate-[spin_20s_linear_infinite_reverse]
+                  animate-[spin_9s_linear_infinite_reverse]
                 "
                 style={{ transform: "translateZ(-120px) scale(1.15)" }}
               />
@@ -416,7 +416,7 @@ const NexoraIntro = ({ onFinish }) => {
                   border
                   border-green-300/40
                   shadow-[0_0_35px_rgba(34,197,94,0.45),0_0_90px_rgba(34,197,94,0.3),0_0_180px_rgba(34,197,94,0.15)]
-                  animate-[spin_14s_linear_infinite]
+                  animate-[spin_6s_linear_infinite]
                 "
                 style={{ transform: "translateZ(-80px)" }}
               />
@@ -432,7 +432,7 @@ const NexoraIntro = ({ onFinish }) => {
                   border-dashed
                   border-green-400/60
                   shadow-[0_0_30px_rgba(34,197,94,0.35)]
-                  animate-[spin_8s_linear_infinite_reverse]
+                  animate-[spin_3.5s_linear_infinite_reverse]
                 "
                 style={{ transform: "translateZ(-40px)" }}
               />
@@ -447,7 +447,7 @@ const NexoraIntro = ({ onFinish }) => {
                   border
                   border-emerald-300/50
                   shadow-[0_0_25px_rgba(52,211,153,0.4),inset_0_0_35px_rgba(34,197,94,0.25)]
-                  animate-[spin_10s_linear_infinite]
+                  animate-[spin_4.5s_linear_infinite]
                 "
                 style={{ transform: "translateZ(-10px)" }}
               />
@@ -462,7 +462,7 @@ const NexoraIntro = ({ onFinish }) => {
                   border-2
                   border-green-400/30
                   border-dotted
-                  animate-[spin_6s_linear_infinite_reverse]
+                  animate-[spin_2.5s_linear_infinite_reverse]
                 "
                 style={{ transform: "translateZ(20px)" }}
               />
@@ -478,10 +478,120 @@ const NexoraIntro = ({ onFinish }) => {
                   rounded-full
                   border
                   border-lime-200/25
-                  animate-[spin_16s_linear_infinite]
+                  animate-[spin_7s_linear_infinite]
                 "
                 style={{
                   transform: "translateZ(35px) rotateX(55deg)",
+                }}
+              />
+
+              {/* =================================================
+                  THICK ORBITAL LIGHT BEAMS
+                  Heavy, saturated green beams sweeping around the
+                  outside of the portal at speed — this is the
+                  "atmosphere" layer: it reads less like a UI ring
+                  and more like real energy circling a live portal.
+              ================================================= */}
+
+              <div
+                className="absolute -inset-[38px] animate-[spin_3s_linear_infinite]"
+                style={{ transform: "translateZ(-55px)" }}
+              >
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-[-9px]
+                    h-[70px]
+                    w-[14px]
+                    -translate-x-1/2
+                    rounded-full
+                    bg-gradient-to-b
+                    from-transparent
+                    via-green-300
+                    to-emerald-400
+                    blur-[3px]
+                    shadow-[0_0_25px_10px_rgba(74,222,128,0.7)]
+                  "
+                />
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    bottom-[-9px]
+                    h-[70px]
+                    w-[14px]
+                    -translate-x-1/2
+                    rounded-full
+                    bg-gradient-to-t
+                    from-transparent
+                    via-green-300
+                    to-emerald-400
+                    blur-[3px]
+                    shadow-[0_0_25px_10px_rgba(74,222,128,0.7)]
+                  "
+                />
+              </div>
+
+              <div
+                className="absolute -inset-[38px] animate-[spin_4.2s_linear_infinite_reverse]"
+                style={{ transform: "translateZ(-55px) rotate(90deg)" }}
+              >
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-[-7px]
+                    h-[55px]
+                    w-[10px]
+                    -translate-x-1/2
+                    rounded-full
+                    bg-gradient-to-b
+                    from-transparent
+                    via-lime-200
+                    to-green-400
+                    blur-[3px]
+                    shadow-[0_0_20px_8px_rgba(163,230,53,0.6)]
+                  "
+                />
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    bottom-[-7px]
+                    h-[55px]
+                    w-[10px]
+                    -translate-x-1/2
+                    rounded-full
+                    bg-gradient-to-t
+                    from-transparent
+                    via-lime-200
+                    to-green-400
+                    blur-[3px]
+                    shadow-[0_0_20px_8px_rgba(163,230,53,0.6)]
+                  "
+                />
+              </div>
+
+              {/* Continuous thick ring of orbiting light — a full
+                  circling halo rather than isolated beams, closest
+                  to the portal rim for maximum "atmosphere" feel */}
+
+              <div
+                className="
+                  absolute
+                  -inset-[10px]
+                  rounded-full
+                  animate-[spin_2.2s_linear_infinite]
+                "
+                style={{
+                  transform: "translateZ(-25px)",
+                  background:
+                    "conic-gradient(from 0deg, rgba(74,222,128,0) 0deg, rgba(74,222,128,0.9) 25deg, rgba(190,242,100,0.95) 45deg, rgba(74,222,128,0) 75deg, rgba(74,222,128,0) 360deg)",
+                  WebkitMask:
+                    "radial-gradient(farthest-side, transparent calc(100% - 10px), black calc(100% - 10px))",
+                  mask: "radial-gradient(farthest-side, transparent calc(100% - 10px), black calc(100% - 10px))",
+                  filter: "blur(2px)",
                 }}
               />
 
@@ -496,7 +606,7 @@ const NexoraIntro = ({ onFinish }) => {
                   overflow-hidden
                   rounded-full
                   bg-[#010603]
-                  shadow-[inset_0_0_50px_rgba(34,197,94,0.9),inset_0_0_110px_rgba(34,197,94,0.4),0_0_50px_rgba(34,197,94,0.5),0_0_100px_rgba(34,197,94,0.3)]
+                  shadow-[inset_0_0_60px_rgba(34,197,94,0.95),inset_0_0_140px_rgba(34,197,94,0.5),0_0_60px_rgba(34,197,94,0.6),0_0_130px_rgba(34,197,94,0.35)]
                 "
                 style={{ transform: "translateZ(45px)" }}
               >
@@ -508,14 +618,36 @@ const NexoraIntro = ({ onFinish }) => {
                     absolute
                     left-1/2
                     top-1/2
-                    h-[180px]
-                    w-[180px]
+                    h-[200px]
+                    w-[200px]
                     -translate-x-1/2
                     -translate-y-1/2
                     rounded-full
-                    bg-green-400/[0.14]
-                    blur-[45px]
+                    bg-green-400/[0.16]
+                    blur-[50px]
                     animate-pulse
+                  "
+                />
+
+                {/* Deep tunnel ring — sits visually "behind" the
+                    other vortex rings via low opacity + heavy blur,
+                    giving the core actual sense of depth rather
+                    than a flat spinning disc */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[160px]
+                    w-[160px]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border-2
+                    border-green-500/25
+                    blur-[1px]
+                    animate-[spin_6s_linear_infinite_reverse]
                   "
                 />
 
@@ -534,7 +666,7 @@ const NexoraIntro = ({ onFinish }) => {
                     border
                     border-green-300/40
                     shadow-[0_0_35px_rgba(34,197,94,0.5),inset_0_0_35px_rgba(34,197,94,0.4)]
-                    animate-[spin_5s_linear_infinite]
+                    animate-[spin_1.8s_linear_infinite]
                   "
                 />
 
@@ -554,7 +686,27 @@ const NexoraIntro = ({ onFinish }) => {
                     border
                     border-lime-200/50
                     shadow-[0_0_25px_rgba(163,230,53,0.5)]
-                    animate-[spin_3.2s_linear_infinite_reverse]
+                    animate-[spin_1.1s_linear_infinite_reverse]
+                  "
+                />
+
+                {/* Innermost vortex ring — fastest spin, right at
+                    the mouth of the core, tightens the "pull" feel */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[88px]
+                    w-[88px]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border
+                    border-green-200/60
+                    shadow-[0_0_20px_rgba(190,242,100,0.6)]
+                    animate-[spin_0.9s_linear_infinite]
                   "
                 />
 
@@ -571,7 +723,7 @@ const NexoraIntro = ({ onFinish }) => {
                     -translate-y-1/2
                     rounded-full
                     bg-[radial-gradient(circle,rgba(220,255,230,0.95)_0%,rgba(134,239,172,0.8)_18%,rgba(34,197,94,0.35)_38%,rgba(0,0,0,0.95)_72%)]
-                    shadow-[0_0_40px_rgba(220,255,230,1),0_0_90px_rgba(74,222,128,0.7),0_0_150px_rgba(34,197,94,0.4)]
+                    shadow-[0_0_45px_rgba(220,255,230,1),0_0_100px_rgba(74,222,128,0.75),0_0_170px_rgba(34,197,94,0.45)]
                     animate-pulse
                   "
                 />
@@ -584,7 +736,7 @@ const NexoraIntro = ({ onFinish }) => {
               ================================================= */}
 
               <div
-                className="absolute inset-0 animate-[spin_10s_linear_infinite]"
+                className="absolute inset-0 animate-[spin_3.8s_linear_infinite]"
                 style={{ transform: "translateZ(50px)" }}
               >
 
@@ -651,7 +803,7 @@ const NexoraIntro = ({ onFinish }) => {
                   layered motion parallax */}
 
               <div
-                className="absolute inset-0 animate-[spin_7s_linear_infinite_reverse]"
+                className="absolute inset-0 animate-[spin_2.6s_linear_infinite_reverse]"
                 style={{ transform: "translateZ(-30px) rotate(45deg)" }}
               >
 
