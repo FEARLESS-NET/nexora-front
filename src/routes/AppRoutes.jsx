@@ -1,3 +1,69 @@
+/**
+ * =============================================================================
+ *  NEXORA — APPLICATION ROUTES
+ * =============================================================================
+ *
+ *  This module owns two responsibilities:
+ *
+ *    1. `AppRoutes` — the top-level router for the entire application. It
+ *       wires together public marketing/browse pages, authenticated
+ *       dashboard pages (behind `ProtectedRoute`), and a catch-all 404.
+ *       All route-level pages are lazy-loaded via `React.lazy` so the
+ *       initial bundle only pays for the shell (router + layouts), not
+ *       every page in the app.
+ *
+ *    2. `NexoraIntro` — a one-time, four-second animated splash screen
+ *       shown on first mount, styled as a "portal" boot sequence. It is
+ *       intentionally over-produced relative to a typical splash screen:
+ *       it layers a perspective-based 3D ring system, animated SVG energy
+ *       tendrils, a HUD-style telemetry overlay, orbiting glyphs, and a
+ *       scrolling boot-sequence ticker, all built from Tailwind utility
+ *       classes plus a small scoped `<style>` block of custom keyframes.
+ *
+ *  -----------------------------------------------------------------------
+ *  WHY A SCOPED <style> BLOCK INSTEAD OF PURE TAILWIND?
+ *  -----------------------------------------------------------------------
+ *  Tailwind's `animate-*` utilities cover simple cases well (spin, pulse,
+ *  bounce), but this splash screen needs animations Tailwind doesn't ship
+ *  out of the box: multi-stage flicker, stroke-dashoffset "line draw"
+ *  effects for the SVG tendrils, CSS-variable-driven orbit radii for the
+ *  glyphs, and text shimmer via animated background-position. Rather than
+ *  reach for arbitrary one-off `animate-[keyframes_...]` utilities
+ *  scattered across dozens of elements (which becomes unreadable fast),
+ *  every custom keyframe lives in one `nx-`-prefixed block at the top of
+ *  `NexoraIntro`, with small `.nx-anim-*` utility classes wiring them to
+ *  elements. This keeps the keyframe definitions co-located, named, and
+ *  documented, while the JSX below stays a normal class-name list.
+ *
+ *  -----------------------------------------------------------------------
+ *  PERFORMANCE NOTES
+ *  -----------------------------------------------------------------------
+ *  - The splash unmounts entirely after `finishIntro` fires (`showIntro`
+ *    flips to `false`), so none of its animations, listeners, or DOM
+ *    nodes persist once the real app is interactive.
+ *  - The `pointermove` listener used for the parallax tilt effect is
+ *    registered only while the intro is mounted and is cleaned up on
+ *    unmount, so it never leaks into the rest of the app.
+ *  - All decorative layers use `pointer-events-none` so they never
+ *    intercept clicks/taps, and purely visual containers are marked
+ *    `aria-hidden` where practical to keep screen readers focused on
+ *    real content once the app loads.
+ *
+ *  -----------------------------------------------------------------------
+ *  EXTENDING THIS FILE
+ *  -----------------------------------------------------------------------
+ *  - New public pages: add a `lazy(() => import(...))` declaration in the
+ *    "LAZY PAGES" section below, then a matching `<Route>` under PUBLIC.
+ *  - New authenticated pages: same pattern, but nest the `<Route>` inside
+ *    the `<Route element={<ProtectedRoute />}>` block under PROTECTED.
+ *  - Splash timing: the 4000ms auto-dismiss lives in `NexoraIntro`'s
+ *    `useEffect`; the CSS transition/animation durations for individual
+ *    layers are independent of that and can be retuned per-element via
+ *    the `.nx-anim-*` classes above without touching the timer.
+ *
+ * =============================================================================
+ */
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 
@@ -113,18 +179,145 @@ const particles = [
 ];
 
 // ======================================================
+// ACCESSIBILITY — REDUCED MOTION
+// ======================================================
+//
+// The splash screen is animation-heavy by design, which is a poor
+// experience for anyone with `prefers-reduced-motion: reduce` set at
+// the OS level (vestibular disorders, motion sensitivity, or simple
+// preference). This hook tracks that media query live, including
+// changes made mid-session, so `NexoraIntro` can drop back to a
+// near-static presentation without a page reload.
+
+const usePrefersReducedMotion = () => {
+  const [prefersReduced, setPrefersReduced] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return undefined;
+    }
+
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReduced(query.matches);
+
+    const handleChange = (event) => {
+      setPrefersReduced(event.matches);
+    };
+
+    // Older Safari only supports addListener/removeListener; modern
+    // browsers support addEventListener. Support both so this hook
+    // doesn't silently no-op on slightly older WebKit.
+    if (query.addEventListener) {
+      query.addEventListener("change", handleChange);
+      return () => query.removeEventListener("change", handleChange);
+    }
+
+    query.addListener(handleChange);
+    return () => query.removeListener(handleChange);
+  }, []);
+
+  return prefersReduced;
+};
+
+// ======================================================
 // NEXORA INTRO
 // ======================================================
 
-const NexoraIntro = ({ onFinish }) => {
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+// ======================================================
+// SUBSYSTEM STATUS PANEL
+// ======================================================
+//
+// A tiny self-contained "boot sequence" widget: a fixed list of
+// subsystem labels, each rendered as a thin animated progress bar
+// that fills from 0 to its target percentage shortly after mount.
+// Extracted as its own component (rather than inlined in
+// `NexoraIntro`) so the fill-in-on-mount behavior — which needs its
+// own effect to trigger the width transition — stays isolated and
+// easy to reason about independently of the rest of the splash.
+
+const SUBSYSTEMS = [
+  { label: "PORTAL RING ARRAY", target: 100 },
+  { label: "ENERGY CONTAINMENT", target: 96 },
+  { label: "DEVELOPER GRAPH SYNC", target: 88 },
+  { label: "QUANTUM SEAL", target: 100 },
+];
+
+const SubsystemBar = ({ label, target, delay }) => {
+  const [width, setWidth] = useState(0);
 
   useEffect(() => {
+    // Start at 0 so the browser registers the initial state, then
+    // flip to the target width on the next tick (plus a stagger
+    // delay) so the CSS `transition` actually has something to
+    // animate between.
     const timer = setTimeout(() => {
-      onFinish();
-    }, 4000);
+      setWidth(target);
+    }, delay);
 
     return () => clearTimeout(timer);
+  }, [target, delay]);
+
+  return (
+    <div className="w-44">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="nx-hud-text text-[8px] tracking-[0.2em] text-green-300/60">
+          {label}
+        </span>
+        <span className="nx-hud-text text-[8px] text-green-300/40">
+          {width}%
+        </span>
+      </div>
+      <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/5">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-green-300 to-lime-200 shadow-[0_0_8px_rgba(74,222,128,0.7)] transition-all duration-[1400ms] ease-out"
+          style={{ width: `${width}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const SubsystemStatusPanel = () => {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-[calc(50%+270px)] flex -translate-x-1/2 flex-col gap-2.5">
+      {SUBSYSTEMS.map((system, i) => (
+        <SubsystemBar
+          key={system.label}
+          label={system.label}
+          target={system.target}
+          delay={300 + i * 220}
+        />
+      ))}
+    </div>
+  );
+};
+
+const NexoraIntro = ({ onFinish }) => {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [flashActive, setFlashActive] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  // Total time the intro stays mounted before handing off to the app.
+  const INTRO_DURATION_MS = 4000;
+
+  // How long before the end of the intro the "portal opened" flash
+  // should trigger. Kept short and near the very end so it reads as
+  // a payoff moment rather than an early interruption.
+  const FLASH_LEAD_TIME_MS = 380;
+
+  useEffect(() => {
+    const dismissTimer = setTimeout(() => {
+      onFinish();
+    }, INTRO_DURATION_MS);
+
+    const flashTimer = setTimeout(() => {
+      setFlashActive(true);
+    }, INTRO_DURATION_MS - FLASH_LEAD_TIME_MS);
+
+    return () => {
+      clearTimeout(dismissTimer);
+      clearTimeout(flashTimer);
+    };
   }, [onFinish]);
 
   // Pointer-driven parallax — this is what gives the portal
@@ -142,13 +335,394 @@ const NexoraIntro = ({ onFinish }) => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[99999] overflow-hidden bg-[#010402] text-white">
+    <div
+      className={
+        "fixed inset-0 z-[99999] overflow-hidden bg-[#010402] text-white" +
+        (prefersReducedMotion ? " nx-reduced-motion" : "")
+      }
+    >
+
+      {/* =====================================================================
+          NEXORA INTRO — DEDICATED KEYFRAME LIBRARY
+          =====================================================================
+          Every custom animation used by the splash screen lives here, scoped
+          under an `nx-` prefix so nothing collides with Tailwind's own
+          keyframes or with animation names used elsewhere in the app.
+
+          Organized into logical groups:
+            1. Portal & ring motion        (breathing, flicker, surge)
+            2. Atmosphere & energy         (tendrils, chromatic shift)
+            3. HUD / sci-fi overlay        (scanlines, grid drift, blink)
+            4. Typography & branding       (glitch, flare sweep)
+            5. Ambient particle motion     (drift, twinkle)
+      ===================================================================== */}
+
+      <style>
+        {`
+          /* -----------------------------------------------------------
+             GROUP 1 — PORTAL & RING MOTION
+             ----------------------------------------------------------- */
+
+          @keyframes nx-ring-breathe {
+            0%   { transform: scale(1);     opacity: 0.55; }
+            50%  { transform: scale(1.045); opacity: 0.9;  }
+            100% { transform: scale(1);     opacity: 0.55; }
+          }
+
+          @keyframes nx-ring-breathe-slow {
+            0%   { transform: scale(1);      opacity: 0.4; }
+            50%  { transform: scale(1.08);   opacity: 0.75; }
+            100% { transform: scale(1);      opacity: 0.4; }
+          }
+
+          @keyframes nx-core-flicker {
+            0%, 100% { opacity: 1;    filter: brightness(1);   }
+            8%       { opacity: 0.85; filter: brightness(1.3); }
+            9%       { opacity: 1;    filter: brightness(0.9); }
+            32%      { opacity: 1;    filter: brightness(1);   }
+            33%      { opacity: 0.8;  filter: brightness(1.4); }
+            34%      { opacity: 1;    filter: brightness(1);   }
+            70%      { opacity: 1;    filter: brightness(1);   }
+            71%      { opacity: 0.88; filter: brightness(1.25);}
+            72%      { opacity: 1;    filter: brightness(1);   }
+          }
+
+          @keyframes nx-energy-surge {
+            0%   { opacity: 0.35; transform: scale(0.94); }
+            45%  { opacity: 1;    transform: scale(1.06); }
+            100% { opacity: 0.35; transform: scale(0.94); }
+          }
+
+          @keyframes nx-vortex-wobble {
+            0%   { transform: translate(-50%, -50%) rotate(0deg)   scale(1);    }
+            25%  { transform: translate(-50%, -50%) rotate(90deg)  scale(1.03); }
+            50%  { transform: translate(-50%, -50%) rotate(180deg) scale(0.98); }
+            75%  { transform: translate(-50%, -50%) rotate(270deg) scale(1.02); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) scale(1);    }
+          }
+
+          /* -----------------------------------------------------------
+             GROUP 2 — ATMOSPHERE & ENERGY
+             ----------------------------------------------------------- */
+
+          @keyframes nx-tendril-flow {
+            0%   { stroke-dashoffset: 240; opacity: 0;   }
+            10%  { opacity: 0.9;                          }
+            50%  { opacity: 1;                            }
+            90%  { opacity: 0.7;                          }
+            100% { stroke-dashoffset: 0;   opacity: 0;    }
+          }
+
+          @keyframes nx-tendril-glow-pulse {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(74,222,128,0.55)); }
+            50%      { filter: drop-shadow(0 0 16px rgba(163,230,53,0.9)); }
+          }
+
+          @keyframes nx-chromatic-shift {
+            0%   { filter: drop-shadow(-1.5px 0 0 rgba(255,80,80,0.35)) drop-shadow(1.5px 0 0 rgba(74,222,128,0.55)); }
+            50%  { filter: drop-shadow(1.5px 0 0 rgba(255,80,80,0.35))  drop-shadow(-1.5px 0 0 rgba(74,222,128,0.55)); }
+            100% { filter: drop-shadow(-1.5px 0 0 rgba(255,80,80,0.35)) drop-shadow(1.5px 0 0 rgba(74,222,128,0.55)); }
+          }
+
+          @keyframes nx-orbit-glyph {
+            from { transform: rotate(0deg)   translateX(var(--nx-orbit-radius, 150px)) rotate(0deg);   }
+            to   { transform: rotate(360deg) translateX(var(--nx-orbit-radius, 150px)) rotate(-360deg); }
+          }
+
+          @keyframes nx-orbit-glyph-reverse {
+            from { transform: rotate(360deg) translateX(var(--nx-orbit-radius, 150px)) rotate(-360deg); }
+            to   { transform: rotate(0deg)   translateX(var(--nx-orbit-radius, 150px)) rotate(0deg);   }
+          }
+
+          /* -----------------------------------------------------------
+             GROUP 3 — HUD / SCI-FI OVERLAY
+             ----------------------------------------------------------- */
+
+          @keyframes nx-scanline-sweep {
+            0%   { transform: translateY(-100%); opacity: 0;   }
+            10%  { opacity: 0.5;                                }
+            90%  { opacity: 0.5;                                }
+            100% { transform: translateY(100vh); opacity: 0;   }
+          }
+
+          @keyframes nx-grid-drift {
+            0%   { background-position: 0px 0px;   }
+            100% { background-position: 60px 60px; }
+          }
+
+          @keyframes nx-hud-blink {
+            0%, 100% { opacity: 1;    }
+            50%      { opacity: 0.25; }
+          }
+
+          @keyframes nx-hud-border-glow {
+            0%, 100% { box-shadow: 0 0 0px rgba(74,222,128,0);   }
+            50%      { box-shadow: 0 0 14px rgba(74,222,128,0.6); }
+          }
+
+          @keyframes nx-readout-fade-in {
+            0%   { opacity: 0; transform: translateY(4px); }
+            100% { opacity: 1; transform: translateY(0);   }
+          }
+
+          /* -----------------------------------------------------------
+             GROUP 4 — TYPOGRAPHY & BRANDING
+             ----------------------------------------------------------- */
+
+          @keyframes nx-logo-glitch {
+            0%, 92%, 100% {
+              transform: translate(0, 0);
+              opacity: 1;
+            }
+            93% {
+              transform: translate(-2px, 1px);
+              opacity: 0.85;
+            }
+            95% {
+              transform: translate(2px, -1px);
+              opacity: 0.95;
+            }
+            97% {
+              transform: translate(-1px, 0);
+              opacity: 0.9;
+            }
+          }
+
+          @keyframes nx-flare-sweep {
+            0%   { transform: translateX(-140%) skewX(-18deg); opacity: 0;   }
+            15%  { opacity: 0.8;                                             }
+            50%  { opacity: 0.9;                                             }
+            85%  { opacity: 0.2;                                             }
+            100% { transform: translateX(140%) skewX(-18deg);  opacity: 0;   }
+          }
+
+          @keyframes nx-tagline-shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center;  }
+          }
+
+          /* -----------------------------------------------------------
+             GROUP 5 — AMBIENT PARTICLE MOTION
+             ----------------------------------------------------------- */
+
+          @keyframes nx-particle-drift-a {
+            0%   { transform: translate(0px, 0px);     }
+            50%  { transform: translate(6px, -10px);   }
+            100% { transform: translate(0px, 0px);     }
+          }
+
+          @keyframes nx-particle-drift-b {
+            0%   { transform: translate(0px, 0px);     }
+            50%  { transform: translate(-8px, 8px);    }
+            100% { transform: translate(0px, 0px);     }
+          }
+
+          @keyframes nx-star-twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(0.8); }
+            50%      { opacity: 0.9;  transform: scale(1.15);}
+          }
+
+          /* -----------------------------------------------------------
+             UTILITY CLASSES — wire the keyframes above to elements
+             without bloating the JSX with long inline style objects.
+             ----------------------------------------------------------- */
+
+          .nx-anim-ring-breathe        { animation: nx-ring-breathe 4s ease-in-out infinite; }
+          .nx-anim-ring-breathe-slow   { animation: nx-ring-breathe-slow 7s ease-in-out infinite; }
+          .nx-anim-core-flicker        { animation: nx-core-flicker 3.6s linear infinite; }
+          .nx-anim-energy-surge        { animation: nx-energy-surge 2.4s ease-in-out infinite; }
+          .nx-anim-vortex-wobble       { animation: nx-vortex-wobble 5s linear infinite; }
+          .nx-anim-tendril-flow        { animation: nx-tendril-flow 2.6s ease-in-out infinite; }
+          .nx-anim-tendril-glow        { animation: nx-tendril-glow-pulse 1.8s ease-in-out infinite; }
+          .nx-anim-chromatic-shift     { animation: nx-chromatic-shift 2.2s ease-in-out infinite; }
+          .nx-anim-orbit-glyph         { animation: nx-orbit-glyph 9s linear infinite; }
+          .nx-anim-orbit-glyph-reverse { animation: nx-orbit-glyph-reverse 11s linear infinite; }
+          .nx-anim-scanline            { animation: nx-scanline-sweep 3.2s linear infinite; }
+          .nx-anim-grid-drift          { animation: nx-grid-drift 5s linear infinite; }
+          .nx-anim-hud-blink           { animation: nx-hud-blink 1.6s ease-in-out infinite; }
+          .nx-anim-hud-border-glow     { animation: nx-hud-border-glow 2.4s ease-in-out infinite; }
+          .nx-anim-readout-fade-in     { animation: nx-readout-fade-in 0.6s ease-out both; }
+          .nx-anim-logo-glitch         { animation: nx-logo-glitch 3.8s steps(1) infinite; }
+          .nx-anim-flare-sweep         { animation: nx-flare-sweep 3.4s ease-in-out infinite; }
+          .nx-anim-tagline-shimmer     {
+            background-image: linear-gradient(
+              90deg,
+              rgba(134,239,172,0.4) 0%,
+              rgba(255,255,255,0.95) 50%,
+              rgba(134,239,172,0.4) 100%
+            );
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: nx-tagline-shimmer 3.2s linear infinite;
+          }
+          .nx-anim-particle-drift-a    { animation: nx-particle-drift-a 3.4s ease-in-out infinite; }
+          .nx-anim-particle-drift-b    { animation: nx-particle-drift-b 4.1s ease-in-out infinite; }
+          .nx-anim-star-twinkle        { animation: nx-star-twinkle 2.6s ease-in-out infinite; }
+
+          .nx-grid-overlay {
+            background-image:
+              linear-gradient(rgba(74,222,128,0.06) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(74,222,128,0.06) 1px, transparent 1px);
+            background-size: 42px 42px;
+          }
+
+          .nx-hud-corner {
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            border-color: rgba(134,239,172,0.55);
+          }
+
+          .nx-hud-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            letter-spacing: 0.18em;
+          }
+
+          /* -----------------------------------------------------------
+             REDUCED MOTION OVERRIDE
+             -----------------------------------------------------------
+             When .nx-reduced-motion is present on the intro root
+             (driven by usePrefersReducedMotion), every custom
+             animation defined above — plus Tailwind's own spin/pulse/
+             bounce utilities used throughout the splash — is collapsed
+             to a single static frame. Layout, color, and glow are all
+             preserved; only motion is removed.
+             ----------------------------------------------------------- */
+
+          .nx-reduced-motion [class*="nx-anim-"],
+          .nx-reduced-motion [class*="animate-"] {
+            animation: none !important;
+            transition: none !important;
+          }
+        `}
+      </style>
 
       {/* =================================================
           DEEP BACKGROUND
       ================================================= */}
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,120,0.07)_0%,rgba(0,20,10,0.35)_28%,#010402_70%)]" />
+
+      {/* =====================================================================
+          HOLOGRAPHIC GRID OVERLAY
+          =====================================================================
+          A faint, slowly-drifting grid gives the whole scene a sense of a
+          "projected" HUD surface rather than a flat gradient background.
+          Kept at very low opacity so it reads as texture, not noise.
+      ===================================================================== */}
+
+      <div className="nx-grid-overlay nx-anim-grid-drift pointer-events-none absolute inset-0 opacity-40" />
+
+      {/* =====================================================================
+          VERTICAL SCANLINE SWEEP
+          =====================================================================
+          A single soft band of light travels top-to-bottom on a loop,
+          reinforcing the "scanning / initializing" narrative of the intro.
+      ===================================================================== */}
+
+      <div
+        className="nx-anim-scanline pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-transparent via-green-300/10 to-transparent"
+      />
+
+      {/* =====================================================================
+          LENS FLARE SWEEP
+          =====================================================================
+          A wide, angled streak of light periodically sweeps across the
+          entire scene — a cheap but effective way to sell "camera lens"
+          realism on top of an otherwise flat 2D composition.
+      ===================================================================== */}
+
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="nx-anim-flare-sweep absolute top-0 h-full w-[35%] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
+        />
+      </div>
+
+      {/* =====================================================================
+          HUD FRAME — CORNER BRACKETS + TELEMETRY READOUT
+          =====================================================================
+          Four sci-fi style corner brackets with small monospace status
+          labels. Purely decorative, but they turn the splash into a
+          believable "system boot" screen rather than a plain loader.
+      ===================================================================== */}
+
+      <div className="pointer-events-none absolute inset-6 sm:inset-10">
+
+        {/* Top-left */}
+        <div className="nx-hud-corner nx-anim-hud-border-glow absolute left-0 top-0 border-l-2 border-t-2">
+          <p className="nx-hud-text absolute left-2 top-2 text-[9px] text-green-300/70">
+            SYS.CORE // ONLINE
+          </p>
+        </div>
+
+        {/* Top-right */}
+        <div className="nx-hud-corner nx-anim-hud-border-glow absolute right-0 top-0 border-r-2 border-t-2">
+          <p className="nx-hud-text absolute right-2 top-2 text-right text-[9px] text-green-300/70">
+            REL 5.0.0
+          </p>
+        </div>
+
+        {/* Bottom-left */}
+        <div className="nx-hud-corner nx-anim-hud-border-glow absolute bottom-0 left-0 border-b-2 border-l-2">
+          <p className="nx-hud-text absolute bottom-2 left-2 text-[9px] text-green-300/70">
+            SYNC // LOCKED
+          </p>
+        </div>
+
+        {/* Bottom-right */}
+        <div className="nx-hud-corner nx-anim-hud-border-glow absolute bottom-0 right-0 border-b-2 border-r-2">
+          <p className="nx-hud-text absolute bottom-2 right-2 text-right text-[9px] text-green-300/70">
+            PWR // 98.4%
+          </p>
+        </div>
+
+      </div>
+
+      {/* =====================================================================
+          SIDE TELEMETRY TICKERS
+          =====================================================================
+          Thin vertical strips of scrolling monospace readouts along the
+          left and right edges — evokes a mission-control / spacecraft
+          console without competing visually with the portal itself.
+      ===================================================================== */}
+
+      <div className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 flex-col gap-2 sm:flex">
+        {[
+          "QNTM.FLUX  0x2A91",
+          "NODE.LINK  STABLE",
+          "GATE.SEAL  ARMED",
+          "MASS.DRIFT 0.002%",
+          "CORE.TEMP  -4.1K",
+        ].map((line, i) => (
+          <p
+            key={line}
+            className="nx-hud-text nx-anim-hud-blink text-[9px] text-green-400/40"
+            style={{ animationDelay: `${i * 0.35}s` }}
+          >
+            {line}
+          </p>
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 flex-col items-end gap-2 sm:flex">
+        {[
+          "ORBIT.CALC OK",
+          "BEAM.ARRAY  x6",
+          "VOID.SCAN  CLEAR",
+          "ECHO.DELAY  12ms",
+          "NEXORA.OS  v9.2",
+        ].map((line, i) => (
+          <p
+            key={line}
+            className="nx-hud-text nx-anim-hud-blink text-right text-[9px] text-green-400/40"
+            style={{ animationDelay: `${i * 0.4 + 0.2}s` }}
+          >
+            {line}
+          </p>
+        ))}
+      </div>
 
       {/* Large atmospheric glow */}
 
@@ -182,6 +756,36 @@ const NexoraIntro = ({ onFinish }) => {
           blur-[100px]
         "
       />
+
+      {/* =====================================================================
+          ENERGY CONTAINMENT FIELD
+          =====================================================================
+          A set of very large, faint, slowly-breathing concentric rings
+          centered on the portal. These sit far outside the portal's own
+          ring system (380px) and establish a sense of a much bigger
+          "containment field" surrounding the whole scene — the portal
+          reads as the visible core of something far larger, rather than
+          the full extent of the effect.
+      ===================================================================== */}
+
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        {[
+          { size: 1180, opacity: "border-green-300/[0.05]", duration: "nx-anim-ring-breathe-slow" },
+          { size: 980, opacity: "border-green-300/[0.07]", duration: "nx-anim-ring-breathe" },
+          { size: 780, opacity: "border-green-300/[0.09]", duration: "nx-anim-ring-breathe-slow" },
+          { size: 640, opacity: "border-green-300/[0.11]", duration: "nx-anim-ring-breathe" },
+        ].map((ring, i) => (
+          <div
+            key={ring.size}
+            className={`absolute rounded-full border ${ring.opacity} ${ring.duration}`}
+            style={{
+              width: `${ring.size}px`,
+              height: `${ring.size}px`,
+              animationDelay: `${i * 0.6}s`,
+            }}
+          />
+        ))}
+      </div>
 
       {/* =================================================
           PARTICLES
@@ -368,6 +972,74 @@ const NexoraIntro = ({ onFinish }) => {
             className="relative h-[380px] w-[380px]"
             style={{ perspective: "1400px" }}
           >
+
+            {/* =================================================
+                LIGHTNING TENDRILS
+                =================================================
+                Six jagged energy arcs radiate outward from the rim
+                of the portal at staggered intervals, each drawn as
+                an SVG path animated via stroke-dashoffset so they
+                appear to "crawl" outward and fade — classic portal/
+                rift visual language, layered underneath the rings.
+            ================================================= */}
+
+            <svg
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 overflow-visible"
+              viewBox="0 0 520 520"
+              fill="none"
+            >
+              {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+                <g
+                  key={angle}
+                  style={{
+                    transformOrigin: "260px 260px",
+                    transform: `rotate(${angle}deg)`,
+                  }}
+                >
+                  <path
+                    d="M260,150 L266,120 L258,95 L268,60 L255,25"
+                    stroke={i % 2 === 0 ? "#86efac" : "#bef264"}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray="240"
+                    className="nx-anim-tendril-flow nx-anim-tendril-glow"
+                    style={{ animationDelay: `${i * 0.4}s` }}
+                  />
+                </g>
+              ))}
+            </svg>
+
+            {/* =================================================
+                ORBITING SCI-FI GLYPHS
+                =================================================
+                A ring of small geometric "runes" circling the
+                portal at a fixed radius, alternating spin direction
+                per orbit so they visually interlock rather than
+                moving as a single flat wheel.
+            ================================================= */}
+
+            <div
+              className="pointer-events-none absolute left-1/2 top-1/2 h-0 w-0"
+            >
+              {["◆", "▲", "●", "◇", "▶", "■", "◈", "△"].map((glyph, i) => (
+                <span
+                  key={glyph + i}
+                  className={
+                    "absolute left-0 top-0 text-[10px] text-green-300/70 " +
+                    (i % 2 === 0
+                      ? "nx-anim-orbit-glyph"
+                      : "nx-anim-orbit-glyph-reverse")
+                  }
+                  style={{
+                    "--nx-orbit-radius": `${168 + (i % 3) * 10}px`,
+                    animationDelay: `${i * -1.1}s`,
+                    textShadow: "0 0 8px rgba(74,222,128,0.8)",
+                  }}
+                >
+                  {glyph}
+                </span>
+              ))}
+            </div>
 
             <div
               className="absolute inset-0 transition-transform duration-300 ease-out"
@@ -841,6 +1513,43 @@ const NexoraIntro = ({ onFinish }) => {
 
           </div>
 
+          {/* =====================================================================
+              PORTAL STATUS READOUT
+              =====================================================================
+              A small monospace console beneath the ring system, listing a
+              handful of fake telemetry values. Each line fades in with a
+              slight stagger so it reads as "live data populating" rather
+              than static text.
+          ===================================================================== */}
+
+          <div className="pointer-events-none absolute left-1/2 top-[calc(50%+210px)] flex -translate-x-1/2 flex-col items-center gap-1">
+            {[
+              "PORTAL INTEGRITY ..... 100%",
+              "QUANTUM FLUX ......... STABLE",
+              "DEVELOPER UPLINK ..... ESTABLISHED",
+            ].map((line, i) => (
+              <p
+                key={line}
+                className="nx-hud-text nx-anim-readout-fade-in text-[9px] tracking-[0.25em] text-green-300/50"
+                style={{ animationDelay: `${1.1 + i * 0.35}s` }}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+
+          {/* =====================================================================
+              SUBSYSTEM STATUS BARS
+              =====================================================================
+              A small cluster of horizontal "loading" bars, each labeled like a
+              boot-sequence subsystem. Every bar fills via a CSS transition
+              triggered on mount (width 0 -> target), staggered so they don't
+              all complete at once — this is what makes a boot screen feel
+              like it's actually doing work rather than just looping a spinner.
+          ===================================================================== */}
+
+          <SubsystemStatusPanel />
+
           {/* =================================================
               NEXORA LOGO
           ================================================= */}
@@ -860,6 +1569,8 @@ const NexoraIntro = ({ onFinish }) => {
 
               <h1
                 className="
+                  nx-anim-chromatic-shift
+                  nx-anim-logo-glitch
                   relative
                   whitespace-nowrap
                   text-5xl
@@ -885,13 +1596,12 @@ const NexoraIntro = ({ onFinish }) => {
 
             <p
               className="
+                nx-anim-tagline-shimmer
                 text-sm
                 font-semibold
                 uppercase
                 tracking-[0.6em]
-                text-green-300
                 drop-shadow-[0_0_12px_rgba(74,222,128,0.8)]
-                animate-pulse
               "
             >
               WELCOME DEVELOPERS
@@ -944,6 +1654,78 @@ const NexoraIntro = ({ onFinish }) => {
         </div>
 
       </div>
+
+      {/* =====================================================================
+          SECONDARY STARFIELD LAYER
+          =====================================================================
+          A sparser, slower, twinkling layer of tiny points sits above the
+          main particle field. Where `particles` reads as "energy motes"
+          near the portal, this layer reads as distant background stars,
+          adding an extra sense of scale/depth to the whole scene.
+      ===================================================================== */}
+
+      <div className="pointer-events-none absolute inset-0">
+        {[
+          [4, 8], [12, 22], [19, 61], [27, 40], [33, 77],
+          [41, 15], [48, 58], [56, 33], [63, 88], [71, 12],
+          [77, 66], [84, 29], [90, 71], [96, 44], [8, 90],
+          [15, 48], [23, 4], [31, 95], [38, 30], [46, 82],
+          [53, 6], [61, 55], [68, 18], [74, 92], [82, 52],
+          [88, 8], [93, 63], [3, 35], [59, 96], [97, 24],
+        ].map(([left, top], i) => (
+          <span
+            key={`star-${i}`}
+            className={
+              "nx-anim-star-twinkle absolute rounded-full bg-emerald-100 " +
+              (i % 2 === 0 ? "nx-anim-particle-drift-a" : "nx-anim-particle-drift-b")
+            }
+            style={{
+              left: `${left}%`,
+              top: `${top}%`,
+              width: "1px",
+              height: "1px",
+              animationDelay: `${(i % 7) * 0.3}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* =====================================================================
+          BOTTOM TELEMETRY TICKER
+          =====================================================================
+          A thin strip of scrolling monospace text along the very bottom
+          edge of the screen — a small but effective detail that makes the
+          splash feel like a real console boot sequence rather than a
+          static loading graphic.
+      ===================================================================== */}
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 overflow-hidden">
+        <div className="nx-hud-text whitespace-nowrap text-[9px] tracking-[0.3em] text-green-400/30">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <span key={i} className="mr-16">
+              NEXORA.OS BOOT SEQUENCE — CALIBRATING PORTAL ARRAY — SYNCING
+              DEVELOPER GRAPH — VERIFYING QUANTUM SEAL — LOADING WORKSPACE —
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* =====================================================================
+          PORTAL-OPENED COMPLETION FLASH
+          =====================================================================
+          A brief, bright white-green flash that fades in during the final
+          moments of the intro (see `FLASH_LEAD_TIME_MS`), then fades back
+          out just as `onFinish` fires. It gives the transition into the
+          real app a small "payoff" beat instead of an abrupt cut, without
+          adding to the fixed 4-second total duration.
+      ===================================================================== */}
+
+      <div
+        className={
+          "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9)_0%,rgba(190,242,100,0.4)_35%,transparent_70%)] transition-opacity duration-300 ease-in " +
+          (flashActive ? "opacity-70" : "opacity-0")
+        }
+      />
 
       {/* =================================================
           VIGNETTE
