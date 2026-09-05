@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import {
   Heart,
   MessageCircle,
@@ -8,43 +9,695 @@ import {
   Building2,
   Grid,
   Terminal,
+  Send,
+  Trash2,
+  X,
+  LogIn,
 } from "lucide-react";
+
 import { Link } from "react-router-dom";
 
 import { API_URL } from "../utils/config";
 
 const AllProjects = () => {
   const [projects, setProjects] = useState([]);
+
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, developers, companies
+
+  const [filter, setFilter] =
+    useState("all");
+
+  const [error, setError] =
+    useState("");
+
+  // ==========================================
+  // COMMENT MODAL
+  // ==========================================
+
+  const [selectedProject, setSelectedProject] =
+    useState(null);
+
+  const [comments, setComments] =
+    useState([]);
+
+  const [commentsLoading, setCommentsLoading] =
+    useState(false);
+
+  const [commentText, setCommentText] =
+    useState("");
+
+  const [commentLoading, setCommentLoading] =
+    useState(false);
+
+  const [commentError, setCommentError] =
+    useState("");
+
+  // ==========================================
+  // LIKE LOADING
+  // ==========================================
+
+  const [likeLoading, setLikeLoading] =
+    useState({});
+
+  // ==========================================
+  // GET TOKEN
+  // ==========================================
+
+  const getToken = () => {
+    return localStorage.getItem("token");
+  };
+
+  // ==========================================
+  // FETCH PROJECTS
+  // ==========================================
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProjects = async () => {
       try {
         setLoading(true);
+        setError("");
 
-        const response = await fetch(`${API_URL}/projects/all`);
-        const data = await response.json();
+        const url =
+          `${API_URL}/projects/all`;
 
-        if (response.ok) {
-          setProjects(data.projects || []);
+        console.log(
+          "📡 Fetching projects:",
+          url
+        );
+
+        const response =
+          await fetch(url);
+
+        if (!response.ok) {
+          const text =
+            await response.text();
+
+          console.error(
+            "Projects API error:",
+            response.status,
+            text
+          );
+
+          throw new Error(
+            `Projects API error: ${response.status}`
+          );
         }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
+
+        const data =
+          await response.json();
+
+        console.log(
+          "✅ Projects response:",
+          data
+        );
+
+        if (!cancelled) {
+          setProjects(
+            Array.isArray(
+              data.projects
+            )
+              ? data.projects
+              : []
+          );
+        }
+      } catch (err) {
+        console.error(
+          "❌ Error fetching projects:",
+          err
+        );
+
+        if (!cancelled) {
+          setError(
+            err?.message ||
+              "Failed to load projects"
+          );
+
+          setProjects([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProjects();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const filteredProjects = projects.filter((project) => {
-    if (filter === "all") return true;
-    if (filter === "developers") return project.developerId;
-    if (filter === "companies") return project.companyId;
-    return true;
-  });
+  // ==========================================
+  // FILTER
+  // ==========================================
+
+  const filteredProjects =
+    projects.filter(
+      (project) => {
+        if (filter === "all") {
+          return true;
+        }
+
+        if (filter === "developers") {
+          return Boolean(
+            project.developerId ||
+              project.developer ||
+              project.owner?.role ===
+                "developer"
+          );
+        }
+
+        if (filter === "companies") {
+          return Boolean(
+            project.companyId ||
+              project.company ||
+              project.owner?.role ===
+                "company"
+          );
+        }
+
+        return true;
+      }
+    );
+
+  // ==========================================
+  // ❤️ LIKE / UNLIKE
+  // ==========================================
+
+  const handleLike = async (
+    project
+  ) => {
+    const token = getToken();
+
+    if (!token) {
+      alert(
+        "Like bosish uchun avval login qiling."
+      );
+      return;
+    }
+
+    const projectId =
+      project._id || project.id;
+
+    if (!projectId) {
+      return;
+    }
+
+    if (likeLoading[projectId]) {
+      return;
+    }
+
+    setLikeLoading((prev) => ({
+      ...prev,
+      [projectId]: true,
+    }));
+
+    try {
+      /*
+       * Frontendda likedBy ichida current
+       * user bor-yo'qligini tekshiramiz.
+       *
+       * Public /all endpoint hozir likedBy
+       * ni beradi.
+       */
+
+      const currentUserId =
+        JSON.parse(
+          localStorage.getItem("user") ||
+            "null"
+        )?.id;
+
+      const alreadyLiked =
+        Array.isArray(
+          project.likedBy
+        ) &&
+        project.likedBy.some(
+          (user) => {
+            const id =
+              typeof user ===
+              "object"
+                ? user._id
+                : user;
+
+            return (
+              id?.toString() ===
+              currentUserId?.toString()
+            );
+          }
+        );
+
+      const method =
+        alreadyLiked
+          ? "DELETE"
+          : "POST";
+
+      const response =
+        await fetch(
+          `${API_URL}/projects/${projectId}/like`,
+          {
+            method,
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Like operation failed"
+        );
+      }
+
+      setProjects(
+        (prevProjects) =>
+          prevProjects.map(
+            (item) => {
+              const itemId =
+                item._id ||
+                item.id;
+
+              if (
+                itemId?.toString() !==
+                projectId.toString()
+              ) {
+                return item;
+              }
+
+              let newLikedBy =
+                Array.isArray(
+                  item.likedBy
+                )
+                  ? [
+                      ...item.likedBy,
+                    ]
+                  : [];
+
+              if (data.liked) {
+                if (
+                  !newLikedBy.some(
+                    (user) => {
+                      const id =
+                        typeof user ===
+                        "object"
+                          ? user._id
+                          : user;
+
+                      return (
+                        id?.toString() ===
+                        currentUserId?.toString()
+                      );
+                    }
+                  )
+                ) {
+                  newLikedBy.push(
+                    currentUserId
+                  );
+                }
+              } else {
+                newLikedBy =
+                  newLikedBy.filter(
+                    (user) => {
+                      const id =
+                        typeof user ===
+                        "object"
+                          ? user._id
+                          : user;
+
+                      return (
+                        id?.toString() !==
+                        currentUserId?.toString()
+                      );
+                    }
+                  );
+              }
+
+              return {
+                ...item,
+
+                likedBy:
+                  newLikedBy,
+
+                likes:
+                  data.likesCount ??
+                  newLikedBy.length,
+              };
+            }
+          )
+      );
+    } catch (error) {
+      console.error(
+        "❌ Like error:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "Like qilishda xatolik yuz berdi"
+      );
+    } finally {
+      setLikeLoading(
+        (prev) => ({
+          ...prev,
+          [projectId]: false,
+        })
+      );
+    }
+  };
+
+  // ==========================================
+  // 💬 OPEN COMMENTS
+  // ==========================================
+
+  const openComments = async (
+    project
+  ) => {
+    const projectId =
+      project._id || project.id;
+
+    setSelectedProject(project);
+
+    setComments([]);
+
+    setCommentText("");
+
+    setCommentError("");
+
+    setCommentsLoading(true);
+
+    try {
+      const response =
+        await fetch(
+          `${API_URL}/projects/${projectId}/comments`
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Comments loading failed"
+        );
+      }
+
+      setComments(
+        Array.isArray(
+          data.comments
+        )
+          ? data.comments
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "❌ Get comments error:",
+        error
+      );
+
+      setCommentError(
+        error?.message ||
+          "Comments loading failed"
+      );
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  // ==========================================
+  // 💬 ADD COMMENT
+  // ==========================================
+
+  const handleAddComment =
+    async () => {
+      const token =
+        getToken();
+
+      if (!token) {
+        setCommentError(
+          "Comment yozish uchun avval login qiling."
+        );
+        return;
+      }
+
+      if (
+        !commentText.trim()
+      ) {
+        return;
+      }
+
+      if (!selectedProject) {
+        return;
+      }
+
+      const projectId =
+        selectedProject._id ||
+        selectedProject.id;
+
+      setCommentLoading(
+        true
+      );
+
+      setCommentError("");
+
+      try {
+        const response =
+          await fetch(
+            `${API_URL}/projects/${projectId}/comments`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Authorization:
+                  `Bearer ${token}`,
+              },
+
+              body: JSON.stringify({
+                content:
+                  commentText.trim(),
+              }),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Comment yuborilmadi"
+          );
+        }
+
+        if (data.comment) {
+          setComments(
+            (prev) => [
+              data.comment,
+              ...prev,
+            ]
+          );
+        }
+
+        setCommentText("");
+
+        // Projectdagi comment countni yangilash
+        setProjects(
+          (prevProjects) =>
+            prevProjects.map(
+              (project) => {
+                const id =
+                  project._id ||
+                  project.id;
+
+                if (
+                  id?.toString() !==
+                  projectId.toString()
+                ) {
+                  return project;
+                }
+
+                return {
+                  ...project,
+                  comments:
+                    data.commentsCount ??
+                    ((project.comments ||
+                      0) +
+                      1),
+                };
+              }
+            )
+        );
+
+        // Modal projectni ham yangilash
+        setSelectedProject(
+          (prev) =>
+            prev
+              ? {
+                  ...prev,
+                  comments:
+                    data.commentsCount ??
+                    ((prev.comments ||
+                      0) +
+                      1),
+                }
+              : prev
+        );
+      } catch (error) {
+        console.error(
+          "❌ Add comment error:",
+          error
+        );
+
+        setCommentError(
+          error?.message ||
+            "Comment yuborishda xatolik"
+        );
+      } finally {
+        setCommentLoading(
+          false
+        );
+      }
+    };
+
+  // ==========================================
+  // 🗑️ DELETE COMMENT
+  // ==========================================
+
+  const handleDeleteComment =
+    async (commentId) => {
+      const token =
+        getToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const response =
+          await fetch(
+            `${API_URL}/projects/comments/${commentId}`,
+            {
+              method: "DELETE",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Comment o'chirilmadi"
+          );
+        }
+
+        setComments(
+          (prev) =>
+            prev.filter(
+              (comment) =>
+                comment._id !==
+                commentId
+            )
+        );
+
+        if (selectedProject) {
+          const projectId =
+            selectedProject._id ||
+            selectedProject.id;
+
+          setProjects(
+            (prevProjects) =>
+              prevProjects.map(
+                (project) => {
+                  const id =
+                    project._id ||
+                    project.id;
+
+                  if (
+                    id?.toString() !==
+                    projectId.toString()
+                  ) {
+                    return project;
+                  }
+
+                  return {
+                    ...project,
+                    comments:
+                      data.commentsCount ??
+                      Math.max(
+                        0,
+                        (project.comments ||
+                          0) -
+                          1
+                      ),
+                  };
+                }
+              )
+          );
+
+          setSelectedProject(
+            (prev) =>
+              prev
+                ? {
+                    ...prev,
+                    comments:
+                      data.commentsCount ??
+                      Math.max(
+                        0,
+                        (prev.comments ||
+                          0) -
+                          1
+                      ),
+                  }
+                : prev
+          );
+        }
+      } catch (error) {
+        console.error(
+          "❌ Delete comment error:",
+          error
+        );
+
+        alert(
+          error?.message ||
+            "Comment o'chirishda xatolik"
+        );
+      }
+    };
+
+  // ==========================================
+  // ENTER -> COMMENT
+  // ==========================================
+
+  const handleCommentKeyDown =
+    (event) => {
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+
+        handleAddComment();
+      }
+    };
+
+  // ==========================================
+  // LOADING
+  // ==========================================
 
   if (loading) {
     return (
@@ -57,12 +710,16 @@ const AllProjects = () => {
 
                 <div
                   className="absolute inset-2 h-12 w-12 animate-spin rounded-full border-2 border-green-500/30 border-t-green-500"
-                  style={{ animationDirection: "reverse" }}
+                  style={{
+                    animationDirection:
+                      "reverse",
+                  }}
                 />
               </div>
 
-              <div className="mt-6 font-mono text-sm text-green-400 animate-pulse">
+              <div className="mt-6 animate-pulse font-mono text-sm text-green-400">
                 <Terminal className="mr-2 inline-block h-4 w-4" />
+
                 Loading projects...
               </div>
             </div>
@@ -72,36 +729,64 @@ const AllProjects = () => {
     );
   }
 
+  // ==========================================
+  // UI
+  // ==========================================
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#050d18] via-[#081525] to-[#050d18] cyber-grid px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
 
-        {/* Header */}
+        {/* HEADER */}
+
         <div className="mb-8 animate-slide-in">
           <div className="mb-2 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-green-500/30 bg-green-500/10 animate-pulse-glow">
               <Terminal className="h-5 w-5 text-green-400" />
             </div>
 
-            <h1 className="text-3xl font-bold sm:text-4xl font-mono text-glow">
+            <h1 className="font-mono text-3xl font-bold text-glow sm:text-4xl">
               All Projects
             </h1>
           </div>
 
-          <p className="mt-2 text-sm text-gray-400 font-mono">
-            <span className="text-green-400">$</span> Discover amazing
-            projects from developers and companies
+          <p className="mt-2 font-mono text-sm text-gray-400">
+            <span className="text-green-400">
+              $
+            </span>{" "}
+            Discover amazing projects from
+            developers and companies
           </p>
         </div>
 
-        {/* Filter Tabs */}
+        {/* ERROR */}
+
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+            <div className="font-mono text-sm text-red-400">
+              ❌ {error}
+            </div>
+
+            <div className="mt-2 break-all font-mono text-xs text-gray-500">
+              API:{" "}
+              {API_URL}/projects/all
+            </div>
+          </div>
+        )}
+
+        {/* FILTERS */}
+
         <div
-          className="mb-8 flex gap-2 animate-slide-in"
-          style={{ animationDelay: "0.1s" }}
+          className="mb-8 flex flex-wrap gap-2 animate-slide-in"
+          style={{
+            animationDelay: "0.1s",
+          }}
         >
           <button
-            onClick={() => setFilter("all")}
-            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium font-mono ${
+            onClick={() =>
+              setFilter("all")
+            }
+            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm font-medium ${
               filter === "all"
                 ? "border-green-500/50 bg-green-500/20 text-green-400 animate-pulse-glow"
                 : "border-white/10 bg-white/5 text-gray-400 hover:border-green-500/30"
@@ -112,9 +797,12 @@ const AllProjects = () => {
           </button>
 
           <button
-            onClick={() => setFilter("developers")}
-            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium font-mono ${
-              filter === "developers"
+            onClick={() =>
+              setFilter("developers")
+            }
+            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm font-medium ${
+              filter ===
+              "developers"
                 ? "border-green-500/50 bg-green-500/20 text-green-400 animate-pulse-glow"
                 : "border-white/10 bg-white/5 text-gray-400 hover:border-green-500/30"
             }`}
@@ -124,9 +812,12 @@ const AllProjects = () => {
           </button>
 
           <button
-            onClick={() => setFilter("companies")}
-            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium font-mono ${
-              filter === "companies"
+            onClick={() =>
+              setFilter("companies")
+            }
+            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm font-medium ${
+              filter ===
+              "companies"
                 ? "border-green-500/50 bg-green-500/20 text-green-400 animate-pulse-glow"
                 : "border-white/10 bg-white/5 text-gray-400 hover:border-green-500/30"
             }`}
@@ -136,141 +827,308 @@ const AllProjects = () => {
           </button>
         </div>
 
-        {/* Projects Grid */}
-        {filteredProjects.length > 0 ? (
+        {/* PROJECTS */}
+
+        {filteredProjects.length >
+        0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredProjects.map((project, index) => (
-              <div
-                key={project._id}
-                className="card-cyber glass-cyber group overflow-hidden rounded-2xl animate-slide-in"
-                style={{
-                  animationDelay: `${0.2 + index * 0.05}s`,
-                }}
-              >
+            {filteredProjects.map(
+              (
+                project,
+                index
+              ) => {
+                const projectId =
+                  project._id ||
+                  project.id;
 
-                {/* Project Image */}
-                <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-500/5 to-gray-900">
-                  {project.previewImage ? (
-                    <img
-                      src={project.previewImage}
-                      alt={project.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <div className="relative">
-                        <Code2 className="h-20 w-20 text-green-400/20 animate-pulse" />
+                const token =
+                  getToken();
 
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Terminal className="h-8 w-8 text-green-400/30" />
+                const currentUser =
+                  JSON.parse(
+                    localStorage.getItem(
+                      "user"
+                    ) || "null"
+                  );
+
+                const currentUserId =
+                  currentUser?.id;
+
+                const isLiked =
+                  Array.isArray(
+                    project.likedBy
+                  ) &&
+                  project.likedBy.some(
+                    (user) => {
+                      const id =
+                        typeof user ===
+                        "object"
+                          ? user._id
+                          : user;
+
+                      return (
+                        id?.toString() ===
+                        currentUserId?.toString()
+                      );
+                    }
+                  );
+
+                return (
+                  <div
+                    key={
+                      projectId ||
+                      index
+                    }
+                    className="card-cyber glass-cyber group overflow-hidden rounded-2xl animate-slide-in"
+                    style={{
+                      animationDelay: `${
+                        0.2 +
+                        index *
+                          0.05
+                      }s`,
+                    }}
+                  >
+                    {/* IMAGE */}
+
+                    <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-green-500/5 to-gray-900">
+                      {project.previewImage ? (
+                        <img
+                          src={
+                            project.previewImage
+                          }
+                          alt={
+                            project.title ||
+                            "Project"
+                          }
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <div className="relative">
+                            <Code2 className="h-20 w-20 animate-pulse text-green-400/20" />
+
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Terminal className="h-8 w-8 text-green-400/30" />
+                            </div>
+                          </div>
                         </div>
+                      )}
+
+                      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                        <div className="animate-scan-line h-full w-full bg-gradient-to-b from-transparent via-green-400/5 to-transparent" />
+                      </div>
+
+                      {/* HOVER BUTTONS */}
+
+                      <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/70 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
+                        {project.liveUrl && (
+                          <a
+                            href={
+                              project.liveUrl
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-cyber flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/20 px-4 py-2 text-sm font-semibold text-green-400 hover:bg-green-500/30"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+
+                            <span className="font-mono">
+                              Live Demo
+                            </span>
+                          </a>
+                        )}
+
+                        {project.githubUrl && (
+                          <a
+                            href={
+                              project.githubUrl
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-cyber flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
+                          >
+                            <Code2 className="h-4 w-4" />
+
+                            <span className="font-mono">
+                              GitHub
+                            </span>
+                          </a>
+                        )}
                       </div>
                     </div>
-                  )}
 
-                  {/* Scan line effect */}
-                  <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    <div className="animate-scan-line h-full w-full bg-gradient-to-b from-transparent via-green-400/5 to-transparent" />
-                  </div>
+                    {/* CONTENT */}
 
-                  {/* Overlay Actions */}
-                  <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/70 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
-                    {project.liveUrl && (
-                      <a
-                        href={project.liveUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-cyber flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/20 px-4 py-2 text-sm font-semibold text-green-400 hover:bg-green-500/30"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        <span className="font-mono">Live Demo</span>
-                      </a>
-                    )}
+                    <div className="p-4">
 
-                    {project.githubUrl && (
-                      <a
-                        href={project.githubUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-cyber flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
-                      >
-                        <Code2 className="h-4 w-4" />
-                        <span className="font-mono">GitHub</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
+                      <h3 className="line-clamp-1 font-mono text-sm font-semibold text-white">
+                        {project.title ||
+                          "Untitled Project"}
+                      </h3>
 
-                {/* Project Info */}
-                <div className="p-4">
-                  <h3 className="line-clamp-1 text-sm font-semibold text-white font-mono">
-                    {project.title}
-                  </h3>
+                      <p className="mt-2 line-clamp-2 font-mono text-xs text-gray-500">
+                        {project.description ||
+                          "No description available."}
+                      </p>
 
-                  <p className="mt-2 line-clamp-2 text-xs text-gray-500 font-mono">
-                    {project.description}
-                  </p>
+                      {/* AUTHOR */}
 
-                  {/* Author Info */}
-                  <div className="mt-3 flex items-center gap-2">
-                    {project.developerName ? (
-                      <Link
-                        to={`/developers/${project.developerUsername}`}
-                        className="flex items-center gap-2 text-xs text-gray-400 transition hover:text-green-400 font-mono"
-                      >
-                        <User className="h-3 w-3" />
-                        {project.developerName}
-                      </Link>
-                    ) : project.companyName ? (
-                      <Link
-                        to={`/companies/${project.companyId}`}
-                        className="flex items-center gap-2 text-xs text-gray-400 transition hover:text-green-400 font-mono"
-                      >
-                        <Building2 className="h-3 w-3" />
-                        {project.companyName}
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-gray-500 font-mono">
-                        Unknown author
-                      </span>
-                    )}
-                  </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        {project.developerName ? (
+                          <Link
+                            to={`/developers/${project.developerUsername}`}
+                            className="flex items-center gap-2 font-mono text-xs text-gray-400 transition hover:text-green-400"
+                          >
+                            <User className="h-3 w-3" />
 
-                  {/* Technologies */}
-                  {project.tech && project.tech.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {project.tech.slice(0, 3).map((tech, index) => (
-                        <span
-                          key={index}
-                          className="rounded-lg border border-green-500/20 bg-green-500/5 px-2 py-1 text-xs text-green-400 font-mono"
-                        >
-                          {tech}
-                        </span>
-                      ))}
+                            {
+                              project.developerName
+                            }
+                          </Link>
+                        ) : project.companyName ? (
+                          <Link
+                            to={`/companies/${project.companyId}`}
+                            className="flex items-center gap-2 font-mono text-xs text-gray-400 transition hover:text-green-400"
+                          >
+                            <Building2 className="h-3 w-3" />
 
-                      {project.tech.length > 3 && (
-                        <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-gray-400 font-mono">
-                          +{project.tech.length - 3}
-                        </span>
-                      )}
+                            {
+                              project.companyName
+                            }
+                          </Link>
+                        ) : (
+                          <span className="font-mono text-xs text-gray-500">
+                            Unknown author
+                          </span>
+                        )}
+                      </div>
+
+                      {/* TECH */}
+
+                      {Array.isArray(
+                        project.tech
+                      ) &&
+                        project.tech.length >
+                          0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {project.tech
+                              .slice(
+                                0,
+                                3
+                              )
+                              .map(
+                                (
+                                  tech,
+                                  techIndex
+                                ) => (
+                                  <span
+                                    key={`${tech}-${techIndex}`}
+                                    className="rounded-lg border border-green-500/20 bg-green-500/5 px-2 py-1 font-mono text-xs text-green-400"
+                                  >
+                                    {
+                                      tech
+                                    }
+                                  </span>
+                                )
+                              )}
+
+                            {project
+                              .tech
+                              .length >
+                              3 && (
+                              <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 font-mono text-xs text-gray-400">
+                                +
+                                {project
+                                  .tech
+                                  .length -
+                                  3}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                      {/* ACTIONS */}
+
+                      <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
+
+                        <div className="flex items-center gap-4">
+
+                          {/* LIKE */}
+
+                          <button
+                            onClick={() =>
+                              handleLike(
+                                project
+                              )
+                            }
+                            disabled={
+                              Boolean(
+                                likeLoading[
+                                  projectId
+                                ]
+                              )
+                            }
+                            className={`group/like flex items-center gap-1.5 font-mono text-xs transition ${
+                              isLiked
+                                ? "text-red-400"
+                                : "text-gray-500 hover:text-red-400"
+                            }`}
+                          >
+                            <Heart
+                              className={`h-4 w-4 transition ${
+                                isLiked
+                                  ? "fill-current"
+                                  : ""
+                              } ${
+                                likeLoading[
+                                  projectId
+                                ]
+                                  ? "animate-pulse"
+                                  : "group-hover/like:scale-110"
+                              }`}
+                            />
+
+                            <span>
+                              {project.likes ||
+                                0}
+                            </span>
+                          </button>
+
+                          {/* COMMENTS */}
+
+                          <button
+                            onClick={() =>
+                              openComments(
+                                project
+                              )
+                            }
+                            className="group/comment flex items-center gap-1.5 font-mono text-xs text-gray-500 transition hover:text-blue-400"
+                          >
+                            <MessageCircle className="h-4 w-4 transition group-hover/comment:scale-110" />
+
+                            <span>
+                              {project.comments ||
+                                0}
+                            </span>
+                          </button>
+
+                        </div>
+
+                        {!token && (
+                          <Link
+                            to="/login"
+                            className="flex items-center gap-1 font-mono text-[10px] text-gray-600 transition hover:text-green-400"
+                          >
+                            <LogIn className="h-3 w-3" />
+                            Login
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                  )}
-
-                  {/* Engagement Stats */}
-                  <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 font-mono">
-                    <div className="flex items-center gap-1">
-                      <Heart className="h-3 w-3 text-red-400/50" />
-                      {project.likes || 0}
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3 text-blue-400/50" />
-                      {project.comments || 0}
-                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              }
+            )}
           </div>
         ) : (
           <div className="glass-cyber rounded-2xl border border-dashed border-green-500/20 py-16 text-center animate-slide-in">
@@ -278,12 +1136,272 @@ const AllProjects = () => {
               <Terminal className="h-8 w-8 text-green-400/50" />
             </div>
 
-            <p className="text-sm text-gray-500 font-mono">
-              <span className="text-green-400">$</span>{" "}
-              {filter === "all"
-                ? "No projects available yet."
-                : `No ${filter} projects available yet.`}
+            <p className="font-mono text-sm text-gray-500">
+              <span className="text-green-400">
+                $
+              </span>{" "}
+              {error
+                ? "Unable to load projects."
+                : filter === "all"
+                  ? "No projects available yet."
+                  : `No ${filter} projects available yet.`}
             </p>
+          </div>
+        )}
+
+        {/* ======================================
+            COMMENT MODAL
+        ====================================== */}
+
+        {selectedProject && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            onClick={() =>
+              setSelectedProject(null)
+            }
+          >
+            <div
+              className="w-full max-w-lg overflow-hidden rounded-2xl border border-green-500/20 bg-[#081525] shadow-2xl"
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+            >
+              {/* MODAL HEADER */}
+
+              <div className="flex items-center justify-between border-b border-white/10 p-4">
+                <div>
+                  <h2 className="font-mono text-lg font-semibold text-white">
+                    Comments
+                  </h2>
+
+                  <p className="mt-1 line-clamp-1 font-mono text-xs text-gray-500">
+                    {
+                      selectedProject.title
+                    }
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setSelectedProject(
+                      null
+                    )
+                  }
+                  className="rounded-lg p-2 text-gray-500 transition hover:bg-white/5 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* COMMENTS LIST */}
+
+              <div className="max-h-[55vh] overflow-y-auto p-4">
+                {commentsLoading ? (
+                  <div className="py-10 text-center">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-green-500/20 border-t-green-400" />
+
+                    <p className="mt-3 font-mono text-xs text-gray-500">
+                      Loading comments...
+                    </p>
+                  </div>
+                ) : commentError &&
+                  comments.length ===
+                    0 ? (
+                  <div className="py-10 text-center font-mono text-xs text-red-400">
+                    ❌{" "}
+                    {commentError}
+                  </div>
+                ) : comments.length ===
+                  0 ? (
+                  <div className="py-10 text-center">
+                    <MessageCircle className="mx-auto h-10 w-10 text-gray-700" />
+
+                    <p className="mt-3 font-mono text-xs text-gray-500">
+                      No comments yet.
+                    </p>
+
+                    <p className="mt-1 font-mono text-[10px] text-gray-700">
+                      Be the first to comment.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {comments.map(
+                      (comment) => {
+                        const currentUser =
+                          JSON.parse(
+                            localStorage.getItem(
+                              "user"
+                            ) ||
+                              "null"
+                          );
+
+                        const isMyComment =
+                          comment.author?._id?.toString() ===
+                            currentUser?.id?.toString() ||
+                          comment.author?.id?.toString() ===
+                            currentUser?.id?.toString();
+
+                        return (
+                          <div
+                            key={
+                              comment._id
+                            }
+                            className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              {/* AVATAR */}
+
+                              {comment
+                                .author
+                                ?.avatar ? (
+                                <img
+                                  src={
+                                    comment
+                                      .author
+                                      .avatar
+                                  }
+                                  alt=""
+                                  className="h-9 w-9 shrink-0 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-green-500/20 bg-green-500/10">
+                                  <User className="h-4 w-4 text-green-400" />
+                                </div>
+                              )}
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div>
+                                    <p className="font-mono text-xs font-semibold text-white">
+                                      {comment
+                                        .author
+                                        ?.name ||
+                                        "Unknown User"}
+                                    </p>
+
+                                    {comment
+                                      .author
+                                      ?.username && (
+                                      <p className="font-mono text-[10px] text-gray-600">
+                                        @
+                                        {
+                                          comment
+                                            .author
+                                            .username
+                                        }
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {isMyComment && (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteComment(
+                                          comment._id
+                                        )
+                                      }
+                                      className="rounded-lg p-1.5 text-gray-600 transition hover:bg-red-500/10 hover:text-red-400"
+                                      title="Delete comment"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                <p className="mt-2 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-gray-400">
+                                  {
+                                    comment.content
+                                  }
+                                </p>
+
+                                <p className="mt-2 font-mono text-[9px] text-gray-700">
+                                  {comment.createdAt
+                                    ? new Date(
+                                        comment.createdAt
+                                      ).toLocaleString()
+                                    : ""}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* COMMENT INPUT */}
+
+              <div className="border-t border-white/10 p-4">
+                {commentError &&
+                  comments.length >
+                    0 && (
+                    <div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 font-mono text-[10px] text-red-400">
+                      ❌{" "}
+                      {commentError}
+                    </div>
+                  )}
+
+                {getToken() ? (
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      value={
+                        commentText
+                      }
+                      onChange={(event) =>
+                        setCommentText(
+                          event.target
+                            .value
+                        )
+                      }
+                      onKeyDown={
+                        handleCommentKeyDown
+                      }
+                      placeholder="Write a comment..."
+                      rows={2}
+                      maxLength={1000}
+                      className="min-h-[46px] flex-1 resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-xs text-white outline-none transition placeholder:text-gray-700 focus:border-green-500/40"
+                    />
+
+                    <button
+                      onClick={
+                        handleAddComment
+                      }
+                      disabled={
+                        commentLoading ||
+                        !commentText.trim()
+                      }
+                      className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-green-500/30 bg-green-500/10 text-green-400 transition hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Send
+                        className={`h-4 w-4 ${
+                          commentLoading
+                            ? "animate-pulse"
+                            : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center">
+                    <p className="font-mono text-xs text-gray-500">
+                      Comment yozish uchun
+                      login qiling.
+                    </p>
+
+                    <Link
+                      to="/login"
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 font-mono text-xs text-green-400 transition hover:bg-green-500/20"
+                    >
+                      <LogIn className="h-3.5 w-3.5" />
+                      Login
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
