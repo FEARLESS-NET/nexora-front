@@ -1949,7 +1949,7 @@ const Messages = () => {
 
       {/* CHAT */}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+      <div className="flex h-[calc(100dvh-150px)] min-h-0 flex-none overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
 
         {/* SIDEBAR */}
 
@@ -2384,8 +2384,8 @@ const Messages = () => {
 
           {/* MESSAGES */}
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <div className="flex flex-col gap-3">
+          <div className="min-h-0 flex-1 overflow-y-scroll p-4">
+            <div className="flex min-h-full flex-col gap-3">
 
             <div className="flex justify-center">
               <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-gray-600">
