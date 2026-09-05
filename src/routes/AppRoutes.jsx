@@ -117,6 +117,8 @@ const particles = [
 // ======================================================
 
 const NexoraIntro = ({ onFinish }) => {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onFinish();
@@ -124,6 +126,20 @@ const NexoraIntro = ({ onFinish }) => {
 
     return () => clearTimeout(timer);
   }, [onFinish]);
+
+  // Pointer-driven parallax — this is what gives the portal
+  // its "8D" depth: every ring/layer reacts to the cursor at a
+  // different intensity, so they appear to sit at different
+  // distances from the screen plane.
+  useEffect(() => {
+    const handleMove = (e) => {
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      setTilt({ x: nx, y: ny });
+    };
+    window.addEventListener("pointermove", handleMove);
+    return () => window.removeEventListener("pointermove", handleMove);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[99999] overflow-hidden bg-[#010402] text-white">
@@ -171,7 +187,12 @@ const NexoraIntro = ({ onFinish }) => {
           PARTICLES
       ================================================= */}
 
-      <div className="pointer-events-none absolute inset-0">
+      <div
+        className="pointer-events-none absolute inset-0 transition-transform duration-700 ease-out"
+        style={{
+          transform: `translate(${tilt.x * 10}px, ${tilt.y * 10}px)`,
+        }}
+      >
 
         {particles.map(([left, top, size, delay], index) => (
           <span
@@ -208,7 +229,12 @@ const NexoraIntro = ({ onFinish }) => {
               HUGE ENERGY RAYS
           ================================================= */}
 
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[850px] w-[850px] -translate-x-1/2 -translate-y-1/2">
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[850px] w-[850px] -translate-x-1/2 -translate-y-1/2 transition-transform duration-500 ease-out"
+            style={{
+              transform: `translate(${tilt.x * -18}px, ${tilt.y * -18}px)`,
+            }}
+          >
 
             {/* Vertical */}
 
@@ -329,214 +355,335 @@ const NexoraIntro = ({ onFinish }) => {
           </div>
 
           {/* =================================================
-              PORTAL SYSTEM
+              PORTAL SYSTEM — 8D DEPTH STAGE
+              A perspective wrapper turns every ring/layer into
+              its own "depth plane": each one gets a distinct
+              translateZ + rotateX/rotateY so the whole portal
+              reads as a real volumetric tunnel instead of a
+              flat spinning graphic. Layers react to the cursor
+              at different strengths (parallax) to sell the depth.
           ================================================= */}
 
-          <div className="relative h-[380px] w-[380px]">
-
-            {/* Outer aura */}
-
-            <div
-              className="
-                absolute
-                -inset-[55px]
-                rounded-full
-                bg-green-400/[0.04]
-                blur-[35px]
-                animate-pulse
-              "
-            />
-
-            {/* Outer rotating ring */}
+          <div
+            className="relative h-[380px] w-[380px]"
+            style={{ perspective: "1400px" }}
+          >
 
             <div
-              className="
-                absolute
-                inset-0
-                rounded-full
-                border
-                border-green-300/40
-                shadow-[0_0_35px_rgba(34,197,94,0.45),0_0_90px_rgba(34,197,94,0.3),0_0_180px_rgba(34,197,94,0.15)]
-                animate-[spin_14s_linear_infinite]
-              "
-            />
-
-            {/* Outer broken energy ring */}
-
-            <div
-              className="
-                absolute
-                inset-[12px]
-                rounded-full
-                border-[3px]
-                border-dashed
-                border-green-400/60
-                shadow-[0_0_30px_rgba(34,197,94,0.35)]
-                animate-[spin_8s_linear_infinite_reverse]
-              "
-            />
-
-            {/* Third ring */}
-
-            <div
-              className="
-                absolute
-                inset-[30px]
-                rounded-full
-                border
-                border-emerald-300/50
-                shadow-[0_0_25px_rgba(52,211,153,0.4),inset_0_0_35px_rgba(34,197,94,0.25)]
-                animate-[spin_10s_linear_infinite]
-              "
-            />
-
-            {/* Inner rotating ring */}
-
-            <div
-              className="
-                absolute
-                inset-[48px]
-                rounded-full
-                border-2
-                border-green-400/30
-                border-dotted
-                animate-[spin_6s_linear_infinite_reverse]
-              "
-            />
-
-            {/* =================================================
-                PORTAL CORE
-            ================================================= */}
-
-            <div
-              className="
-                absolute
-                inset-[65px]
-                overflow-hidden
-                rounded-full
-                bg-[#010603]
-                shadow-[inset_0_0_50px_rgba(34,197,94,0.9),inset_0_0_110px_rgba(34,197,94,0.4),0_0_50px_rgba(34,197,94,0.5),0_0_100px_rgba(34,197,94,0.3)]
-              "
+              className="absolute inset-0 transition-transform duration-300 ease-out"
+              style={{
+                transformStyle: "preserve-3d",
+                transform: `rotateX(${tilt.y * -14}deg) rotateY(${tilt.x * 14}deg)`,
+              }}
             >
 
-              {/* Core glow */}
+              {/* Outer aura */}
 
               <div
                 className="
                   absolute
-                  left-1/2
-                  top-1/2
-                  h-[180px]
-                  w-[180px]
-                  -translate-x-1/2
-                  -translate-y-1/2
+                  -inset-[70px]
                   rounded-full
-                  bg-green-400/[0.12]
+                  bg-green-400/[0.05]
                   blur-[45px]
                   animate-pulse
                 "
+                style={{ transform: "translateZ(-160px)" }}
               />
 
-              {/* Core vortex */}
+              {/* Farthest depth ring — deep background layer */}
 
               <div
                 className="
                   absolute
-                  left-1/2
-                  top-1/2
-                  h-[135px]
-                  w-[135px]
-                  -translate-x-1/2
-                  -translate-y-1/2
+                  -inset-[20px]
+                  rounded-full
+                  border
+                  border-green-200/20
+                  shadow-[0_0_50px_rgba(34,197,94,0.25)]
+                  animate-[spin_20s_linear_infinite_reverse]
+                "
+                style={{ transform: "translateZ(-120px) scale(1.15)" }}
+              />
+
+              {/* Outer rotating ring */}
+
+              <div
+                className="
+                  absolute
+                  inset-0
                   rounded-full
                   border
                   border-green-300/40
-                  shadow-[0_0_35px_rgba(34,197,94,0.5),inset_0_0_35px_rgba(34,197,94,0.4)]
-                  animate-[spin_5s_linear_infinite]
+                  shadow-[0_0_35px_rgba(34,197,94,0.45),0_0_90px_rgba(34,197,94,0.3),0_0_180px_rgba(34,197,94,0.15)]
+                  animate-[spin_14s_linear_infinite]
                 "
+                style={{ transform: "translateZ(-80px)" }}
               />
 
-              {/* Core center */}
+              {/* Outer broken energy ring */}
 
               <div
                 className="
                   absolute
-                  left-1/2
-                  top-1/2
-                  h-[75px]
-                  w-[75px]
-                  -translate-x-1/2
-                  -translate-y-1/2
+                  inset-[12px]
                   rounded-full
-                  bg-[radial-gradient(circle,rgba(134,239,172,0.8)_0%,rgba(34,197,94,0.3)_25%,rgba(0,0,0,0.95)_70%)]
-                  shadow-[0_0_30px_rgba(74,222,128,0.9),0_0_70px_rgba(34,197,94,0.5)]
-                  animate-pulse
+                  border-[3px]
+                  border-dashed
+                  border-green-400/60
+                  shadow-[0_0_30px_rgba(34,197,94,0.35)]
+                  animate-[spin_8s_linear_infinite_reverse]
                 "
+                style={{ transform: "translateZ(-40px)" }}
               />
 
-            </div>
+              {/* Third ring */}
 
-            {/* =================================================
-                ENERGY POINTS
-            ================================================= */}
-
-            <div className="absolute inset-0 animate-[spin_10s_linear_infinite]">
-
-              <span
+              <div
                 className="
                   absolute
-                  left-1/2
-                  top-[-5px]
-                  h-10
-                  w-2
-                  -translate-x-1/2
+                  inset-[30px]
                   rounded-full
-                  bg-green-200
-                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e,0_0_60px_#22c55e]
+                  border
+                  border-emerald-300/50
+                  shadow-[0_0_25px_rgba(52,211,153,0.4),inset_0_0_35px_rgba(34,197,94,0.25)]
+                  animate-[spin_10s_linear_infinite]
                 "
+                style={{ transform: "translateZ(-10px)" }}
               />
 
-              <span
+              {/* Inner rotating ring */}
+
+              <div
                 className="
                   absolute
-                  bottom-[-5px]
-                  left-1/2
-                  h-10
-                  w-2
-                  -translate-x-1/2
+                  inset-[48px]
                   rounded-full
-                  bg-green-300
-                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                  border-2
+                  border-green-400/30
+                  border-dotted
+                  animate-[spin_6s_linear_infinite_reverse]
                 "
+                style={{ transform: "translateZ(20px)" }}
               />
 
-              <span
+              {/* Fine tilted ring — closest ring, tilts opposite the
+                  outer ones so the tunnel appears to rotate around
+                  more than one axis at once */}
+
+              <div
                 className="
                   absolute
-                  left-[-5px]
-                  top-1/2
-                  h-2
-                  w-10
-                  -translate-y-1/2
+                  inset-[40px]
                   rounded-full
-                  bg-green-300
-                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                  border
+                  border-lime-200/25
+                  animate-[spin_16s_linear_infinite]
                 "
+                style={{
+                  transform: "translateZ(35px) rotateX(55deg)",
+                }}
               />
 
-              <span
+              {/* =================================================
+                  PORTAL CORE
+              ================================================= */}
+
+              <div
                 className="
                   absolute
-                  right-[-5px]
-                  top-1/2
-                  h-2
-                  w-10
-                  -translate-y-1/2
+                  inset-[65px]
+                  overflow-hidden
                   rounded-full
-                  bg-green-300
-                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                  bg-[#010603]
+                  shadow-[inset_0_0_50px_rgba(34,197,94,0.9),inset_0_0_110px_rgba(34,197,94,0.4),0_0_50px_rgba(34,197,94,0.5),0_0_100px_rgba(34,197,94,0.3)]
                 "
-              />
+                style={{ transform: "translateZ(45px)" }}
+              >
+
+                {/* Core glow */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[180px]
+                    w-[180px]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    bg-green-400/[0.14]
+                    blur-[45px]
+                    animate-pulse
+                  "
+                />
+
+                {/* Core vortex */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[135px]
+                    w-[135px]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border
+                    border-green-300/40
+                    shadow-[0_0_35px_rgba(34,197,94,0.5),inset_0_0_35px_rgba(34,197,94,0.4)]
+                    animate-[spin_5s_linear_infinite]
+                  "
+                />
+
+                {/* Secondary vortex, counter-spinning, slightly
+                    offset scale — adds a "tunneling" flicker */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[105px]
+                    w-[105px]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    border
+                    border-lime-200/50
+                    shadow-[0_0_25px_rgba(163,230,53,0.5)]
+                    animate-[spin_3.2s_linear_infinite_reverse]
+                  "
+                />
+
+                {/* Core center */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    h-[75px]
+                    w-[75px]
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    bg-[radial-gradient(circle,rgba(220,255,230,0.95)_0%,rgba(134,239,172,0.8)_18%,rgba(34,197,94,0.35)_38%,rgba(0,0,0,0.95)_72%)]
+                    shadow-[0_0_40px_rgba(220,255,230,1),0_0_90px_rgba(74,222,128,0.7),0_0_150px_rgba(34,197,94,0.4)]
+                    animate-pulse
+                  "
+                />
+
+              </div>
+
+              {/* =================================================
+                  ENERGY POINTS — pushed slightly forward (positive Z)
+                  so they read as sparks flying off the front rim
+              ================================================= */}
+
+              <div
+                className="absolute inset-0 animate-[spin_10s_linear_infinite]"
+                style={{ transform: "translateZ(50px)" }}
+              >
+
+                <span
+                  className="
+                    absolute
+                    left-1/2
+                    top-[-5px]
+                    h-10
+                    w-2
+                    -translate-x-1/2
+                    rounded-full
+                    bg-green-200
+                    shadow-[0_0_12px_#86efac,0_0_30px_#22c55e,0_0_60px_#22c55e]
+                  "
+                />
+
+                <span
+                  className="
+                    absolute
+                    bottom-[-5px]
+                    left-1/2
+                    h-10
+                    w-2
+                    -translate-x-1/2
+                    rounded-full
+                    bg-green-300
+                    shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                  "
+                />
+
+                <span
+                  className="
+                    absolute
+                    left-[-5px]
+                    top-1/2
+                    h-2
+                    w-10
+                    -translate-y-1/2
+                    rounded-full
+                    bg-green-300
+                    shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                  "
+                />
+
+                <span
+                  className="
+                    absolute
+                    right-[-5px]
+                    top-1/2
+                    h-2
+                    w-10
+                    -translate-y-1/2
+                    rounded-full
+                    bg-green-300
+                    shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                  "
+                />
+
+              </div>
+
+              {/* Secondary energy points on the opposite spin
+                  direction and a different Z depth, for extra
+                  layered motion parallax */}
+
+              <div
+                className="absolute inset-0 animate-[spin_7s_linear_infinite_reverse]"
+                style={{ transform: "translateZ(-30px) rotate(45deg)" }}
+              >
+
+                <span
+                  className="
+                    absolute
+                    left-1/2
+                    top-[6px]
+                    h-6
+                    w-[6px]
+                    -translate-x-1/2
+                    rounded-full
+                    bg-lime-200/80
+                    shadow-[0_0_10px_#bef264,0_0_24px_#22c55e]
+                  "
+                />
+
+                <span
+                  className="
+                    absolute
+                    bottom-[6px]
+                    left-1/2
+                    h-6
+                    w-[6px]
+                    -translate-x-1/2
+                    rounded-full
+                    bg-lime-200/80
+                    shadow-[0_0_10px_#bef264,0_0_24px_#22c55e]
+                  "
+                />
+
+              </div>
 
             </div>
 
