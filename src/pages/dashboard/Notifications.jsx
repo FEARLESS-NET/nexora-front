@@ -168,7 +168,7 @@ const Notifications = () => {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-green-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.45)]" />
       </div>
     );
   }
@@ -189,7 +189,7 @@ const Notifications = () => {
             Stay updated
           </p>
 
-          <h1 className="mt-1 text-xl font-bold tracking-tight text-white">
+          <h1 className="mt-1 text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
             Notifications
           </h1>
         </div>
@@ -208,7 +208,7 @@ const Notifications = () => {
           NOTIFICATIONS CARD
       ================================= */}
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm ring-1 ring-white/[0.02]">
         {notifications.length === 0 ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
             <Bell className="h-10 w-10 text-gray-600" />
@@ -237,7 +237,7 @@ const Notifications = () => {
                       ICON
                   ================================= */}
 
-                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-500/10">
+                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-500/10 ring-1 ring-green-500/15 shadow-[0_0_16px_-4px_rgba(74,222,128,0.35)]">
                     <Icon className="h-4 w-4 text-green-400" />
 
                     {!notification.read && (

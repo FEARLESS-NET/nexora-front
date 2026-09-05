@@ -867,7 +867,7 @@ const Messages = () => {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center eightd-perspective-1000">
-        <Loader2 className="h-8 w-8 animate-spin text-green-400 eightd-rotate-3d" />
+        <Loader2 className="h-8 w-8 animate-spin text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.45)] eightd-rotate-3d" />
       </div>
     );
   }

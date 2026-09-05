@@ -103,7 +103,7 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm p-6">
           <p className="text-gray-400">
             Loading profile...
           </p>
@@ -686,7 +686,7 @@ const Profile = () => {
           PROFILE CARD
       ========================== */}
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm p-6">
 
         {/* =========================
             USER HEADER

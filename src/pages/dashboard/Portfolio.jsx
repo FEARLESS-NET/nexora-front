@@ -404,7 +404,7 @@ const Portfolio = () => {
             {user?.role === "company" ? "Manage your company projects" : "Showcase your work"}
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
             {user?.role === "company" ? "Company Projects" : "Portfolio"}
           </h1>
 
@@ -417,7 +417,7 @@ const Portfolio = () => {
 
         <button
           onClick={openAddModal}
-          className="flex w-fit items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-semibold text-gray-950 transition hover:bg-green-400"
+          className="flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400"
         >
           <Plus className="h-4 w-4" />
 
@@ -444,7 +444,7 @@ const Portfolio = () => {
 
       {!loading &&
         projects.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] py-20 text-center">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm py-20 text-center">
 
             <FolderKanban className="mx-auto h-12 w-12 text-gray-600" />
 
@@ -459,7 +459,7 @@ const Portfolio = () => {
 
             <button
               onClick={openAddModal}
-              className="mt-6 rounded-xl bg-green-500 px-5 py-2.5 text-sm font-semibold text-gray-950 transition hover:bg-green-400"
+              className="mt-6 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400"
             >
               Add Project
             </button>
@@ -478,7 +478,7 @@ const Portfolio = () => {
             {projects.map((project) => (
               <div
                 key={project._id}
-                className="group overflow-visible rounded-2xl border border-white/10 bg-white/[0.03] transition duration-300 hover:-translate-y-1 hover:border-green-500/30"
+                className="group overflow-visible rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-green-500/30"
               >
 
                 {/* =================================
@@ -728,9 +728,9 @@ const Portfolio = () => {
       ===================================== */}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
 
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-gray-950 p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900 to-gray-950 p-6 shadow-2xl shadow-black/60 ring-1 ring-white/5">
 
             {/* =================================
                 MODAL HEADER
@@ -920,7 +920,7 @@ const Portfolio = () => {
                   type="button"
                   onClick={closeModal}
                   disabled={saving}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10 disabled:opacity-50"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition-all duration-200 hover:border-white/20 hover:bg-white/10 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -930,7 +930,7 @@ const Portfolio = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-3 text-sm font-semibold text-gray-950 transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-3 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
 
                   {saving && (

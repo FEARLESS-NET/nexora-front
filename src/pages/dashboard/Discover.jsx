@@ -160,7 +160,7 @@ const Discover = () => {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] py-20 text-center">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm py-20 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-green-400" />
 
           <p className="mt-4 text-sm text-gray-500">
@@ -205,7 +205,7 @@ const Discover = () => {
           Explore the community
         </p>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
           Discover
         </h1>
 
@@ -266,7 +266,7 @@ const Discover = () => {
             onClick={() => setCategory(item)}
             className={`rounded-full px-4 py-2 text-xs font-medium transition ${
               category === item
-                ? "bg-green-500 text-gray-950"
+                ? "bg-gradient-to-r from-green-400 to-emerald-500 text-gray-950 shadow-md shadow-green-500/30"
                 : "border border-white/10 bg-white/[0.03] text-gray-400 hover:border-green-500/30 hover:text-green-400"
             }`}
           >
@@ -293,7 +293,7 @@ const Discover = () => {
       {/* EMPTY */}
 
       {filteredDevelopers.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] py-20 text-center">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm py-20 text-center">
 
           <Search className="mx-auto h-10 w-10 text-gray-700" />
 
@@ -311,7 +311,7 @@ const Discover = () => {
               setSearch("");
               setCategory("All");
             }}
-            className="mt-5 rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-gray-950 transition hover:bg-green-400"
+            className="mt-5 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-2 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400"
           >
             Reset filters
           </button>
@@ -336,7 +336,7 @@ const Discover = () => {
             return (
               <div
                 key={developer._id}
-                className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition duration-300 hover:-translate-y-1 hover:border-green-500/30 hover:bg-white/[0.045]"
+                className="group rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm p-5 transition-all duration-300 hover:-translate-y-1.5 hover:border-green-500/30 hover:bg-white/[0.045] hover:shadow-2xl hover:shadow-green-500/10"
               >
 
                 {/* TOP */}

@@ -190,7 +190,7 @@ const Proposals = () => {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-green-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.45)]" />
       </div>
     );
   }
@@ -201,7 +201,7 @@ const Proposals = () => {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="text-sm font-medium text-green-400">Proposals</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
             Proposals & Offers
           </h1>
           <p className="mt-2 text-gray-400">
@@ -211,7 +211,7 @@ const Proposals = () => {
 
         <button
           onClick={() => setShowModal(true)}
-          className="flex w-fit items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-semibold text-gray-950 transition hover:bg-green-400"
+          className="flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-2.5 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400"
         >
           <Send className="h-4 w-4" />
           Send Proposal
@@ -226,7 +226,7 @@ const Proposals = () => {
             onClick={() => handleFilterChange("all")}
             className={`rounded-lg px-4 py-2 text-sm transition ${
               filter === "all"
-                ? "bg-green-500 text-gray-950"
+                ? "bg-gradient-to-r from-green-400 to-emerald-500 text-gray-950 shadow-md shadow-green-500/30"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >
@@ -236,7 +236,7 @@ const Proposals = () => {
             onClick={() => handleFilterChange("sent")}
             className={`rounded-lg px-4 py-2 text-sm transition ${
               filter === "sent"
-                ? "bg-green-500 text-gray-950"
+                ? "bg-gradient-to-r from-green-400 to-emerald-500 text-gray-950 shadow-md shadow-green-500/30"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >
@@ -246,7 +246,7 @@ const Proposals = () => {
             onClick={() => handleFilterChange("received")}
             className={`rounded-lg px-4 py-2 text-sm transition ${
               filter === "received"
-                ? "bg-green-500 text-gray-950"
+                ? "bg-gradient-to-r from-green-400 to-emerald-500 text-gray-950 shadow-md shadow-green-500/30"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >
@@ -257,7 +257,7 @@ const Proposals = () => {
 
       {/* Proposals List */}
       {proposals.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] py-20 text-center">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm py-20 text-center">
           <Briefcase className="mx-auto h-12 w-12 text-gray-600" />
           <h2 className="mt-4 text-lg font-semibold text-white">No proposals yet</h2>
           <p className="mt-2 text-sm text-gray-500">
@@ -273,7 +273,7 @@ const Proposals = () => {
           {proposals.map((proposal) => (
             <div
               key={proposal._id}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+              className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.015] shadow-xl shadow-black/20 backdrop-blur-sm p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -315,7 +315,7 @@ const Proposals = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleAccept(proposal._id)}
-                      className="rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-gray-950 transition hover:bg-green-400"
+                      className="rounded-lg bg-gradient-to-r from-green-400 to-emerald-500 px-3 py-2 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400"
                     >
                       Accept
                     </button>
@@ -335,8 +335,8 @@ const Proposals = () => {
 
       {/* Send Proposal Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-gray-950 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900 to-gray-950 p-6 shadow-2xl shadow-black/60 ring-1 ring-white/5">
             <h2 className="text-xl font-bold text-white mb-4">Send Proposal</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -348,7 +348,7 @@ const Proposals = () => {
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   required
                   placeholder="Project proposal"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-green-500/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors duration-150 focus:border-green-500/50 focus:ring-2 focus:ring-green-500/10"
                 />
               </div>
 
@@ -360,7 +360,7 @@ const Proposals = () => {
                   required
                   rows="3"
                   placeholder="Describe your proposal..."
-                  className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-green-500/50"
+                  className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors duration-150 focus:border-green-500/50 focus:ring-2 focus:ring-green-500/10"
                 />
               </div>
 
@@ -371,7 +371,7 @@ const Proposals = () => {
                   value={form.budget}
                   onChange={(e) => setForm({ ...form, budget: e.target.value })}
                   placeholder="$1000 - $5000"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-green-500/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors duration-150 focus:border-green-500/50 focus:ring-2 focus:ring-green-500/10"
                 />
               </div>
 
@@ -382,7 +382,7 @@ const Proposals = () => {
                   value={form.duration}
                   onChange={(e) => setForm({ ...form, duration: e.target.value })}
                   placeholder="2-3 months"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-green-500/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors duration-150 focus:border-green-500/50 focus:ring-2 focus:ring-green-500/10"
                 />
               </div>
 
@@ -392,7 +392,7 @@ const Proposals = () => {
                   value={form.receiverId}
                   onChange={(e) => setForm({ ...form, receiverId: e.target.value })}
                   required
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-green-500/50"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors duration-150 focus:border-green-500/50 focus:ring-2 focus:ring-green-500/10"
                 >
                   <option value="">Choose a developer...</option>
                   {developers.map((dev) => (
@@ -407,14 +407,14 @@ const Proposals = () => {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition hover:bg-white/10"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-gray-300 transition-all duration-200 hover:border-white/20 hover:bg-white/10"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 rounded-xl bg-green-500 px-4 py-3 text-sm font-semibold text-gray-950 transition hover:bg-green-400 disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 px-4 py-3 text-sm font-semibold text-gray-950 shadow-lg shadow-green-500/20 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-0.5 hover:from-green-300 hover:to-emerald-400 disabled:opacity-50"
                 >
                   {saving ? "Sending..." : "Send Proposal"}
                 </button>
