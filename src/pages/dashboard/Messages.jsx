@@ -171,6 +171,15 @@ const Messages = () => {
   const messagesRequestRef =
     useRef(null);
 
+  const messagesContainerRef =
+    useRef(null);
+
+  const refreshTimerRef =
+    useRef(null);
+
+  const isNearBottomRef =
+    useRef(true);
+
   // ========================================
   // SYNC SELECTED CHAT
   // ========================================
@@ -358,16 +367,15 @@ const Messages = () => {
 
   const fetchMessages =
     async (userId) => {
+      let controller = null;
+
       try {
         const token =
           localStorage.getItem(
             "token"
           );
 
-        if (
-          !token ||
-          !userId
-        ) {
+        if (!token || !userId) {
           setMessages([]);
           return;
         }
@@ -378,25 +386,23 @@ const Messages = () => {
           messagesRequestRef.current.abort();
         }
 
-        const controller =
+        controller =
           new AbortController();
 
         messagesRequestRef.current =
           controller;
 
-        setMessages([]);
-
         const response =
           await fetch(
-            `${API_URL}/conversation/${userId}`,
+            `${API_URL}/conversation/${userId}?_=${Date.now()}`,
             {
               headers: {
                 Authorization:
                   `Bearer ${token}`,
               },
-
               signal:
                 controller.signal,
+              cache: "no-store",
             }
           );
 
@@ -411,14 +417,17 @@ const Messages = () => {
 
         if (
           selectedChatRef.current
-            ?.user?._id !== userId
+            ?.user?._id?.toString() !==
+          userId.toString()
         ) {
           return;
         }
 
         if (data.success) {
           setMessages(
-            data.messages || []
+            Array.isArray(data.messages)
+              ? data.messages
+              : []
           );
 
           if (
@@ -439,7 +448,6 @@ const Messages = () => {
         } else {
           setMessages([]);
         }
-
       } catch (error) {
         if (
           error.name ===
@@ -452,17 +460,48 @@ const Messages = () => {
           "❌ Messages error:",
           error
         );
-
+      } finally {
         if (
-          selectedChatRef.current
-            ?.user?._id === userId
+          messagesRequestRef.current ===
+          controller
         ) {
-          setMessages([]);
+          messagesRequestRef.current =
+            null;
         }
       }
     };
 
-  // ========================================
+  const refreshCurrentConversation =
+    async () => {
+      const userId =
+        selectedChatRef.current
+          ?.user?._id;
+
+      if (!userId) {
+        return;
+      }
+
+      await fetchMessages(userId);
+      await fetchConversations();
+    };
+
+  const scheduleConversationRefresh =
+    () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(
+          refreshTimerRef.current
+        );
+      }
+
+      refreshTimerRef.current =
+        setTimeout(() => {
+          refreshTimerRef.current =
+            null;
+
+          refreshCurrentConversation();
+        }, 300);
+    };
+
   // SELECT CHAT
   // ========================================
 
@@ -652,10 +691,10 @@ const Messages = () => {
         if (
           selectedUserId &&
           (
-            senderId ===
-              selectedUserId ||
-            receiverId ===
-              selectedUserId
+            senderId?.toString() ===
+              selectedUserId?.toString() ||
+            receiverId?.toString() ===
+              selectedUserId?.toString()
           )
         ) {
           setMessages(
@@ -663,8 +702,8 @@ const Messages = () => {
               if (
                 current.some(
                   (item) =>
-                    item._id ===
-                    newMessage._id
+                    item._id?.toString() ===
+                    newMessage._id?.toString()
                 )
               ) {
                 return current;
@@ -676,6 +715,10 @@ const Messages = () => {
               ];
             }
           );
+
+          // Socket is instant, but refresh from DB shortly after
+          // so both sides stay synchronized even if an event is missed.
+          scheduleConversationRefresh();
 
           return;
         }
@@ -948,22 +991,81 @@ const Messages = () => {
   }, [socket]);
 
   // ========================================
-  // AUTO SCROLL
-  // ========================================
+  // MESSAGE SCROLL / AUTO REFRESH
+
+  const handleMessagesScroll =
+    () => {
+      const container =
+        messagesContainerRef.current;
+
+      if (!container) {
+        return;
+      }
+
+      const distanceFromBottom =
+        container.scrollHeight -
+        container.scrollTop -
+        container.clientHeight;
+
+      isNearBottomRef.current =
+        distanceFromBottom < 120;
+    };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView(
-      {
-        behavior:
-          "smooth",
-      }
-    );
+    const container =
+      messagesContainerRef.current;
+
+    if (
+      !container ||
+      !isNearBottomRef.current
+    ) {
+      return;
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: "smooth",
+    });
   }, [
     messages,
     typing,
   ]);
 
-  // ========================================
+  // Fallback refresh: Socket.IO may reconnect/fail on Render.
+  // This guarantees the opened conversation catches up.
+  useEffect(() => {
+    if (!selectedChat?.user?._id) {
+      return;
+    }
+
+    const interval =
+      setInterval(() => {
+        refreshCurrentConversation();
+      }, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [
+    selectedChat?.user?._id,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(
+          refreshTimerRef.current
+        );
+      }
+
+      if (
+        messagesRequestRef.current
+      ) {
+        messagesRequestRef.current.abort();
+      }
+    };
+  }, []);
+
   // IMAGE
   // ========================================
 
@@ -1227,7 +1329,7 @@ const Messages = () => {
             );
           }
 
-          await fetchConversations();
+          await refreshCurrentConversation();
         }
 
       } catch (error) {
@@ -1949,7 +2051,7 @@ const Messages = () => {
 
       {/* CHAT */}
 
-      <div className="flex h-[calc(100dvh-150px)] min-h-0 flex-none overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
 
         {/* SIDEBAR */}
 
@@ -2384,8 +2486,8 @@ const Messages = () => {
 
           {/* MESSAGES */}
 
-          <div className="min-h-0 flex-1 overflow-y-scroll p-4">
-            <div className="flex min-h-full flex-col gap-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className="flex flex-col gap-3">
 
             <div className="flex justify-center">
               <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-gray-600">
