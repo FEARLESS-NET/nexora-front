@@ -22,7 +22,8 @@ import { API_URL } from "../utils/config";
 const AllProjects = () => {
   const [projects, setProjects] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
   const [filter, setFilter] =
     useState("all");
@@ -31,7 +32,7 @@ const AllProjects = () => {
     useState("");
 
   // ==========================================
-  // COMMENT MODAL
+  // COMMENTS
   // ==========================================
 
   const [selectedProject, setSelectedProject] =
@@ -60,15 +61,28 @@ const AllProjects = () => {
     useState({});
 
   // ==========================================
-  // GET TOKEN
+  // USER
   // ==========================================
 
+  const getCurrentUser = () => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("user") ||
+          "null"
+      );
+    } catch {
+      return null;
+    }
+  };
+
   const getToken = () => {
-    return localStorage.getItem("token");
+    return localStorage.getItem(
+      "token"
+    );
   };
 
   // ==========================================
-  // FETCH PROJECTS
+  // FETCH ALL PROJECTS
   // ==========================================
 
   useEffect(() => {
@@ -77,6 +91,7 @@ const AllProjects = () => {
     const fetchProjects = async () => {
       try {
         setLoading(true);
+
         setError("");
 
         const url =
@@ -90,26 +105,24 @@ const AllProjects = () => {
         const response =
           await fetch(url);
 
-        if (!response.ok) {
-          const text =
-            await response.text();
-
-          console.error(
-            "Projects API error:",
-            response.status,
-            text
-          );
-
-          throw new Error(
-            `Projects API error: ${response.status}`
-          );
-        }
-
         const data =
           await response.json();
 
+        if (!response.ok) {
+          console.error(
+            "❌ Projects API error:",
+            response.status,
+            data
+          );
+
+          throw new Error(
+            data.message ||
+              `Projects API error: ${response.status}`
+          );
+        }
+
         console.log(
-          "✅ Projects response:",
+          "✅ Projects:",
           data
         );
 
@@ -122,15 +135,15 @@ const AllProjects = () => {
               : []
           );
         }
-      } catch (err) {
+      } catch (error) {
         console.error(
-          "❌ Error fetching projects:",
-          err
+          "❌ Fetch projects error:",
+          error
         );
 
         if (!cancelled) {
           setError(
-            err?.message ||
+            error?.message ||
               "Failed to load projects"
           );
 
@@ -157,25 +170,35 @@ const AllProjects = () => {
   const filteredProjects =
     projects.filter(
       (project) => {
-        if (filter === "all") {
+        if (
+          filter === "all"
+        ) {
           return true;
         }
 
-        if (filter === "developers") {
-          return Boolean(
-            project.developerId ||
-              project.developer ||
-              project.owner?.role ===
-                "developer"
+        if (
+          filter ===
+          "developers"
+        ) {
+          return (
+            project.ownerRole ===
+              "developer" ||
+            Boolean(
+              project.developerId
+            )
           );
         }
 
-        if (filter === "companies") {
-          return Boolean(
-            project.companyId ||
-              project.company ||
-              project.owner?.role ===
-                "company"
+        if (
+          filter ===
+          "companies"
+        ) {
+          return (
+            project.ownerRole ===
+              "company" ||
+            Boolean(
+              project.companyId
+            )
           );
         }
 
@@ -184,81 +207,98 @@ const AllProjects = () => {
     );
 
   // ==========================================
+  // CHECK LIKE
+  // ==========================================
+
+  const isProjectLiked = (
+    project
+  ) => {
+    const user =
+      getCurrentUser();
+
+    if (!user?.id) {
+      return false;
+    }
+
+    if (
+      !Array.isArray(
+        project.likedBy
+      )
+    ) {
+      return false;
+    }
+
+    return project.likedBy.some(
+      (item) => {
+        const id =
+          typeof item ===
+          "object"
+            ? item?._id
+            : item;
+
+        return (
+          id?.toString() ===
+          user.id.toString()
+        );
+      }
+    );
+  };
+
+  // ==========================================
   // ❤️ LIKE / UNLIKE
   // ==========================================
 
   const handleLike = async (
     project
   ) => {
-    const token = getToken();
+    const token =
+      getToken();
 
     if (!token) {
       alert(
         "Like bosish uchun avval login qiling."
       );
+
       return;
     }
 
     const projectId =
-      project._id || project.id;
+      project._id ||
+      project.id;
 
     if (!projectId) {
       return;
     }
 
-    if (likeLoading[projectId]) {
+    if (
+      likeLoading[projectId]
+    ) {
       return;
     }
 
-    setLikeLoading((prev) => ({
-      ...prev,
-      [projectId]: true,
-    }));
+    const liked =
+      isProjectLiked(
+        project
+      );
+
+    setLikeLoading(
+      (prev) => ({
+        ...prev,
+        [projectId]:
+          true,
+      })
+    );
 
     try {
-      /*
-       * Frontendda likedBy ichida current
-       * user bor-yo'qligini tekshiramiz.
-       *
-       * Public /all endpoint hozir likedBy
-       * ni beradi.
-       */
-
-      const currentUserId =
-        JSON.parse(
-          localStorage.getItem("user") ||
-            "null"
-        )?.id;
-
-      const alreadyLiked =
-        Array.isArray(
-          project.likedBy
-        ) &&
-        project.likedBy.some(
-          (user) => {
-            const id =
-              typeof user ===
-              "object"
-                ? user._id
-                : user;
-
-            return (
-              id?.toString() ===
-              currentUserId?.toString()
-            );
-          }
-        );
-
-      const method =
-        alreadyLiked
-          ? "DELETE"
-          : "POST";
-
       const response =
         await fetch(
           `${API_URL}/projects/${projectId}/like`,
           {
-            method,
+            method:
+              liked
+                ? "DELETE"
+                : "POST",
+
             headers: {
               Authorization:
                 `Bearer ${token}`,
@@ -276,9 +316,15 @@ const AllProjects = () => {
         );
       }
 
+      const user =
+        getCurrentUser();
+
+      const userId =
+        user?.id;
+
       setProjects(
-        (prevProjects) =>
-          prevProjects.map(
+        (prev) =>
+          prev.map(
             (item) => {
               const itemId =
                 item._id ||
@@ -291,7 +337,7 @@ const AllProjects = () => {
                 return item;
               }
 
-              let newLikedBy =
+              let likedBy =
                 Array.isArray(
                   item.likedBy
                 )
@@ -300,40 +346,46 @@ const AllProjects = () => {
                     ]
                   : [];
 
-              if (data.liked) {
-                if (
-                  !newLikedBy.some(
-                    (user) => {
+              if (
+                data.liked
+              ) {
+                const exists =
+                  likedBy.some(
+                    (entry) => {
                       const id =
-                        typeof user ===
+                        typeof entry ===
                         "object"
-                          ? user._id
-                          : user;
+                          ? entry?._id
+                          : entry;
 
                       return (
                         id?.toString() ===
-                        currentUserId?.toString()
+                        userId?.toString()
                       );
                     }
-                  )
+                  );
+
+                if (
+                  !exists &&
+                  userId
                 ) {
-                  newLikedBy.push(
-                    currentUserId
+                  likedBy.push(
+                    userId
                   );
                 }
               } else {
-                newLikedBy =
-                  newLikedBy.filter(
-                    (user) => {
+                likedBy =
+                  likedBy.filter(
+                    (entry) => {
                       const id =
-                        typeof user ===
+                        typeof entry ===
                         "object"
-                          ? user._id
-                          : user;
+                          ? entry?._id
+                          : entry;
 
                       return (
                         id?.toString() !==
-                        currentUserId?.toString()
+                        userId?.toString()
                       );
                     }
                   );
@@ -342,12 +394,11 @@ const AllProjects = () => {
               return {
                 ...item,
 
-                likedBy:
-                  newLikedBy,
+                likedBy,
 
                 likes:
                   data.likesCount ??
-                  newLikedBy.length,
+                  likedBy.length,
               };
             }
           )
@@ -360,13 +411,14 @@ const AllProjects = () => {
 
       alert(
         error?.message ||
-          "Like qilishda xatolik yuz berdi"
+          "Like qilishda xatolik"
       );
     } finally {
       setLikeLoading(
         (prev) => ({
           ...prev,
-          [projectId]: false,
+          [projectId]:
+            false,
         })
       );
     }
@@ -380,9 +432,12 @@ const AllProjects = () => {
     project
   ) => {
     const projectId =
-      project._id || project.id;
+      project._id ||
+      project.id;
 
-    setSelectedProject(project);
+    setSelectedProject(
+      project
+    );
 
     setComments([]);
 
@@ -390,7 +445,9 @@ const AllProjects = () => {
 
     setCommentError("");
 
-    setCommentsLoading(true);
+    setCommentsLoading(
+      true
+    );
 
     try {
       const response =
@@ -417,7 +474,7 @@ const AllProjects = () => {
       );
     } catch (error) {
       console.error(
-        "❌ Get comments error:",
+        "❌ Comments error:",
         error
       );
 
@@ -426,7 +483,9 @@ const AllProjects = () => {
           "Comments loading failed"
       );
     } finally {
-      setCommentsLoading(false);
+      setCommentsLoading(
+        false
+      );
     }
   };
 
@@ -443,6 +502,7 @@ const AllProjects = () => {
         setCommentError(
           "Comment yozish uchun avval login qiling."
         );
+
         return;
       }
 
@@ -452,7 +512,9 @@ const AllProjects = () => {
         return;
       }
 
-      if (!selectedProject) {
+      if (
+        !selectedProject
+      ) {
         return;
       }
 
@@ -471,7 +533,8 @@ const AllProjects = () => {
           await fetch(
             `${API_URL}/projects/${projectId}/comments`,
             {
-              method: "POST",
+              method:
+                "POST",
 
               headers: {
                 "Content-Type":
@@ -481,10 +544,12 @@ const AllProjects = () => {
                   `Bearer ${token}`,
               },
 
-              body: JSON.stringify({
-                content:
-                  commentText.trim(),
-              }),
+              body: JSON.stringify(
+                {
+                  content:
+                    commentText.trim(),
+                }
+              ),
             }
           );
 
@@ -498,7 +563,9 @@ const AllProjects = () => {
           );
         }
 
-        if (data.comment) {
+        if (
+          data.comment
+        ) {
           setComments(
             (prev) => [
               data.comment,
@@ -509,10 +576,9 @@ const AllProjects = () => {
 
         setCommentText("");
 
-        // Projectdagi comment countni yangilash
         setProjects(
-          (prevProjects) =>
-            prevProjects.map(
+          (prev) =>
+            prev.map(
               (project) => {
                 const id =
                   project._id ||
@@ -527,6 +593,7 @@ const AllProjects = () => {
 
                 return {
                   ...project,
+
                   comments:
                     data.commentsCount ??
                     ((project.comments ||
@@ -537,19 +604,19 @@ const AllProjects = () => {
             )
         );
 
-        // Modal projectni ham yangilash
         setSelectedProject(
           (prev) =>
             prev
               ? {
                   ...prev,
+
                   comments:
                     data.commentsCount ??
                     ((prev.comments ||
                       0) +
                       1),
                 }
-              : prev
+              : null
         );
       } catch (error) {
         console.error(
@@ -573,7 +640,9 @@ const AllProjects = () => {
   // ==========================================
 
   const handleDeleteComment =
-    async (commentId) => {
+    async (
+      commentId
+    ) => {
       const token =
         getToken();
 
@@ -586,7 +655,8 @@ const AllProjects = () => {
           await fetch(
             `${API_URL}/projects/comments/${commentId}`,
             {
-              method: "DELETE",
+              method:
+                "DELETE",
 
               headers: {
                 Authorization:
@@ -614,14 +684,16 @@ const AllProjects = () => {
             )
         );
 
-        if (selectedProject) {
-          const projectId =
-            selectedProject._id ||
-            selectedProject.id;
+        const projectId =
+          selectedProject?._id ||
+          selectedProject?.id;
 
+        if (
+          projectId
+        ) {
           setProjects(
-            (prevProjects) =>
-              prevProjects.map(
+            (prev) =>
+              prev.map(
                 (project) => {
                   const id =
                     project._id ||
@@ -636,6 +708,7 @@ const AllProjects = () => {
 
                   return {
                     ...project,
+
                     comments:
                       data.commentsCount ??
                       Math.max(
@@ -654,6 +727,7 @@ const AllProjects = () => {
               prev
                 ? {
                     ...prev,
+
                     comments:
                       data.commentsCount ??
                       Math.max(
@@ -663,7 +737,7 @@ const AllProjects = () => {
                           1
                       ),
                   }
-                : prev
+                : null
           );
         }
       } catch (error) {
@@ -680,13 +754,14 @@ const AllProjects = () => {
     };
 
   // ==========================================
-  // ENTER -> COMMENT
+  // ENTER TO SEND
   // ==========================================
 
   const handleCommentKeyDown =
     (event) => {
       if (
-        event.key === "Enter" &&
+        event.key ===
+          "Enter" &&
         !event.shiftKey
       ) {
         event.preventDefault();
@@ -730,7 +805,7 @@ const AllProjects = () => {
   }
 
   // ==========================================
-  // UI
+  // MAIN UI
   // ==========================================
 
   return (
@@ -774,21 +849,16 @@ const AllProjects = () => {
           </div>
         )}
 
-        {/* FILTERS */}
+        {/* FILTER */}
 
-        <div
-          className="mb-8 flex flex-wrap gap-2 animate-slide-in"
-          style={{
-            animationDelay: "0.1s",
-          }}
-        >
+        <div className="mb-8 flex flex-wrap gap-2">
           <button
             onClick={() =>
               setFilter("all")
             }
-            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm font-medium ${
+            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm ${
               filter === "all"
-                ? "border-green-500/50 bg-green-500/20 text-green-400 animate-pulse-glow"
+                ? "border-green-500/50 bg-green-500/20 text-green-400"
                 : "border-white/10 bg-white/5 text-gray-400 hover:border-green-500/30"
             }`}
           >
@@ -798,12 +868,14 @@ const AllProjects = () => {
 
           <button
             onClick={() =>
-              setFilter("developers")
+              setFilter(
+                "developers"
+              )
             }
-            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm font-medium ${
+            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm ${
               filter ===
               "developers"
-                ? "border-green-500/50 bg-green-500/20 text-green-400 animate-pulse-glow"
+                ? "border-green-500/50 bg-green-500/20 text-green-400"
                 : "border-white/10 bg-white/5 text-gray-400 hover:border-green-500/30"
             }`}
           >
@@ -813,12 +885,14 @@ const AllProjects = () => {
 
           <button
             onClick={() =>
-              setFilter("companies")
+              setFilter(
+                "companies"
+              )
             }
-            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm font-medium ${
+            className={`btn-cyber flex items-center gap-2 rounded-xl px-4 py-2 font-mono text-sm ${
               filter ===
               "companies"
-                ? "border-green-500/50 bg-green-500/20 text-green-400 animate-pulse-glow"
+                ? "border-green-500/50 bg-green-500/20 text-green-400"
                 : "border-white/10 bg-white/5 text-gray-400 hover:border-green-500/30"
             }`}
           >
@@ -844,33 +918,9 @@ const AllProjects = () => {
                 const token =
                   getToken();
 
-                const currentUser =
-                  JSON.parse(
-                    localStorage.getItem(
-                      "user"
-                    ) || "null"
-                  );
-
-                const currentUserId =
-                  currentUser?.id;
-
                 const isLiked =
-                  Array.isArray(
-                    project.likedBy
-                  ) &&
-                  project.likedBy.some(
-                    (user) => {
-                      const id =
-                        typeof user ===
-                        "object"
-                          ? user._id
-                          : user;
-
-                      return (
-                        id?.toString() ===
-                        currentUserId?.toString()
-                      );
-                    }
+                  isProjectLiked(
+                    project
                   );
 
                 return (
@@ -918,7 +968,7 @@ const AllProjects = () => {
                         <div className="animate-scan-line h-full w-full bg-gradient-to-b from-transparent via-green-400/5 to-transparent" />
                       </div>
 
-                      {/* HOVER BUTTONS */}
+                      {/* HOVER */}
 
                       <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/70 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
                         {project.liveUrl && (
@@ -928,7 +978,7 @@ const AllProjects = () => {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn-cyber flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/20 px-4 py-2 text-sm font-semibold text-green-400 hover:bg-green-500/30"
+                            className="btn-cyber flex items-center gap-2 rounded-lg border border-green-500/50 bg-green-500/20 px-4 py-2 text-sm text-green-400 hover:bg-green-500/30"
                           >
                             <ExternalLink className="h-4 w-4" />
 
@@ -945,7 +995,7 @@ const AllProjects = () => {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn-cyber flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
+                            className="btn-cyber flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20"
                           >
                             <Code2 className="h-4 w-4" />
 
@@ -1053,7 +1103,7 @@ const AllProjects = () => {
 
                         <div className="flex items-center gap-4">
 
-                          {/* LIKE */}
+                          {/* ❤️ LIKE */}
 
                           <button
                             onClick={() =>
@@ -1094,7 +1144,7 @@ const AllProjects = () => {
                             </span>
                           </button>
 
-                          {/* COMMENTS */}
+                          {/* 💬 COMMENTS */}
 
                           <button
                             onClick={() =>
@@ -1117,9 +1167,10 @@ const AllProjects = () => {
                         {!token && (
                           <Link
                             to="/login"
-                            className="flex items-center gap-1 font-mono text-[10px] text-gray-600 transition hover:text-green-400"
+                            className="flex items-center gap-1 font-mono text-[10px] text-gray-600 hover:text-green-400"
                           >
                             <LogIn className="h-3 w-3" />
+
                             Login
                           </Link>
                         )}
@@ -1131,33 +1182,28 @@ const AllProjects = () => {
             )}
           </div>
         ) : (
-          <div className="glass-cyber rounded-2xl border border-dashed border-green-500/20 py-16 text-center animate-slide-in">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl border border-green-500/30 bg-green-500/10 animate-pulse-glow">
-              <Terminal className="h-8 w-8 text-green-400/50" />
-            </div>
+          <div className="glass-cyber rounded-2xl border border-dashed border-green-500/20 py-16 text-center">
+            <Terminal className="mx-auto h-10 w-10 text-green-400/30" />
 
-            <p className="font-mono text-sm text-gray-500">
-              <span className="text-green-400">
-                $
-              </span>{" "}
+            <p className="mt-4 font-mono text-sm text-gray-500">
               {error
                 ? "Unable to load projects."
-                : filter === "all"
-                  ? "No projects available yet."
-                  : `No ${filter} projects available yet.`}
+                : "No projects available yet."}
             </p>
           </div>
         )}
 
-        {/* ======================================
+        {/* ==================================================
             COMMENT MODAL
-        ====================================== */}
+        ================================================== */}
 
         {selectedProject && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
             onClick={() =>
-              setSelectedProject(null)
+              setSelectedProject(
+                null
+              )
             }
           >
             <div
@@ -1166,15 +1212,15 @@ const AllProjects = () => {
                 event.stopPropagation()
               }
             >
-              {/* MODAL HEADER */}
+              {/* HEADER */}
 
               <div className="flex items-center justify-between border-b border-white/10 p-4">
-                <div>
+                <div className="min-w-0">
                   <h2 className="font-mono text-lg font-semibold text-white">
                     Comments
                   </h2>
 
-                  <p className="mt-1 line-clamp-1 font-mono text-xs text-gray-500">
+                  <p className="mt-1 truncate font-mono text-xs text-gray-500">
                     {
                       selectedProject.title
                     }
@@ -1187,15 +1233,16 @@ const AllProjects = () => {
                       null
                     )
                   }
-                  className="rounded-lg p-2 text-gray-500 transition hover:bg-white/5 hover:text-white"
+                  className="rounded-lg p-2 text-gray-500 hover:bg-white/5 hover:text-white"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* COMMENTS LIST */}
+              {/* COMMENT LIST */}
 
               <div className="max-h-[55vh] overflow-y-auto p-4">
+
                 {commentsLoading ? (
                   <div className="py-10 text-center">
                     <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-green-500/20 border-t-green-400" />
@@ -1203,13 +1250,6 @@ const AllProjects = () => {
                     <p className="mt-3 font-mono text-xs text-gray-500">
                       Loading comments...
                     </p>
-                  </div>
-                ) : commentError &&
-                  comments.length ===
-                    0 ? (
-                  <div className="py-10 text-center font-mono text-xs text-red-400">
-                    ❌{" "}
-                    {commentError}
                   </div>
                 ) : comments.length ===
                   0 ? (
@@ -1221,26 +1261,30 @@ const AllProjects = () => {
                     </p>
 
                     <p className="mt-1 font-mono text-[10px] text-gray-700">
-                      Be the first to comment.
+                      Be the first to
+                      comment.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {comments.map(
-                      (comment) => {
-                        const currentUser =
-                          JSON.parse(
-                            localStorage.getItem(
-                              "user"
-                            ) ||
-                              "null"
-                          );
+                      (
+                        comment
+                      ) => {
+                        const user =
+                          getCurrentUser();
+
+                        const authorId =
+                          comment
+                            .author
+                            ?._id ||
+                          comment
+                            .author
+                            ?.id;
 
                         const isMyComment =
-                          comment.author?._id?.toString() ===
-                            currentUser?.id?.toString() ||
-                          comment.author?.id?.toString() ===
-                            currentUser?.id?.toString();
+                          authorId?.toString() ===
+                          user?.id?.toString();
 
                         return (
                           <div
@@ -1250,6 +1294,7 @@ const AllProjects = () => {
                             className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
                           >
                             <div className="flex items-start gap-3">
+
                               {/* AVATAR */}
 
                               {comment
@@ -1271,6 +1316,9 @@ const AllProjects = () => {
                               )}
 
                               <div className="min-w-0 flex-1">
+
+                                {/* NAME */}
+
                                 <div className="flex items-center justify-between gap-2">
                                   <div>
                                     <p className="font-mono text-xs font-semibold text-white">
@@ -1294,6 +1342,8 @@ const AllProjects = () => {
                                     )}
                                   </div>
 
+                                  {/* DELETE */}
+
                                   {isMyComment && (
                                     <button
                                       onClick={() =>
@@ -1309,11 +1359,15 @@ const AllProjects = () => {
                                   )}
                                 </div>
 
+                                {/* CONTENT */}
+
                                 <p className="mt-2 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-gray-400">
                                   {
                                     comment.content
                                   }
                                 </p>
+
+                                {/* DATE */}
 
                                 <p className="mt-2 font-mono text-[9px] text-gray-700">
                                   {comment.createdAt
@@ -1332,27 +1386,30 @@ const AllProjects = () => {
                 )}
               </div>
 
-              {/* COMMENT INPUT */}
+              {/* INPUT */}
 
               <div className="border-t border-white/10 p-4">
-                {commentError &&
-                  comments.length >
-                    0 && (
-                    <div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 font-mono text-[10px] text-red-400">
-                      ❌{" "}
-                      {commentError}
-                    </div>
-                  )}
+
+                {commentError && (
+                  <div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 font-mono text-[10px] text-red-400">
+                    ❌{" "}
+                    {commentError}
+                  </div>
+                )}
 
                 {getToken() ? (
                   <div className="flex items-end gap-2">
+
                     <textarea
                       value={
                         commentText
                       }
-                      onChange={(event) =>
+                      onChange={(
+                        event
+                      ) =>
                         setCommentText(
-                          event.target
+                          event
+                            .target
                             .value
                         )
                       }
@@ -1362,7 +1419,7 @@ const AllProjects = () => {
                       placeholder="Write a comment..."
                       rows={2}
                       maxLength={1000}
-                      className="min-h-[46px] flex-1 resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-xs text-white outline-none transition placeholder:text-gray-700 focus:border-green-500/40"
+                      className="min-h-[46px] flex-1 resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-xs text-white outline-none placeholder:text-gray-700 focus:border-green-500/40"
                     />
 
                     <button
@@ -1376,24 +1433,25 @@ const AllProjects = () => {
                       className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-green-500/30 bg-green-500/10 text-green-400 transition hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Send
-                        className={`h-4 w-4 ${
+                        className={
                           commentLoading
-                            ? "animate-pulse"
-                            : ""
-                        }`}
+                            ? "h-4 w-4 animate-pulse"
+                            : "h-4 w-4"
+                        }
                       />
                     </button>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center">
                     <p className="font-mono text-xs text-gray-500">
-                      Comment yozish uchun
-                      login qiling.
+                      Comment yozish
+                      uchun login
+                      qiling.
                     </p>
 
                     <Link
                       to="/login"
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 font-mono text-xs text-green-400 transition hover:bg-green-500/20"
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 font-mono text-xs text-green-400 hover:bg-green-500/20"
                     >
                       <LogIn className="h-3.5 w-3.5" />
                       Login
