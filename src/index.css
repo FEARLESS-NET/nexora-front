@@ -1,0 +1,653 @@
+@import "tailwindcss";
+
+/* ==========================================
+   8D ANIMATION SYSTEM - IMMERSIVE EXPERIENCE
+   ========================================== */
+
+/* 8D Perspective Container */
+.eightd-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* 8D Parallax Layers */
+.eightd-parallax {
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+}
+
+/* 8D Mouse Follow Effect */
+.eightd-mouse-follow {
+  transition: transform 0.15s ease-out, rotateX 0.15s ease-out, rotateY 0.15s ease-out;
+  transform-style: preserve-3d;
+}
+
+/* 8D Floating Animation */
+@keyframes eightd-float {
+  0%, 100% {
+    transform: translateY(0) translateZ(0) rotateX(0) rotateY(0);
+  }
+  25% {
+    transform: translateY(-20px) translateZ(30px) rotateX(2deg) rotateY(-2deg);
+  }
+  50% {
+    transform: translateY(-10px) translateZ(50px) rotateX(-1deg) rotateY(3deg);
+  }
+  75% {
+    transform: translateY(-25px) translateZ(20px) rotateX(1deg) rotateY(-1deg);
+  }
+}
+
+/* 8D Pulse Ring */
+@keyframes eightd-pulse-ring {
+  0% {
+    transform: scale(0.8) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2) translateZ(100px);
+    opacity: 0;
+  }
+}
+
+/* 8D Rotation 3D */
+@keyframes eightd-rotate-3d {
+  0% {
+    transform: rotateX(0) rotateY(0) rotateZ(0);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+  }
+}
+
+/* 8D Wave Motion */
+@keyframes eightd-wave {
+  0%, 100% {
+    transform: translateZ(0) translateY(0);
+  }
+  50% {
+    transform: translateZ(50px) translateY(-20px);
+  }
+}
+
+/* 8D Depth Pulse */
+@keyframes eightd-depth-pulse {
+  0%, 100% {
+    transform: translateZ(0) scale(1);
+    filter: blur(0px);
+  }
+  50% {
+    transform: translateZ(100px) scale(1.1);
+    filter: blur(2px);
+  }
+}
+
+/* 8D Orbital Motion */
+@keyframes eightd-orbital {
+  0% {
+    transform: rotate(0deg) translateX(100px) rotate(0deg) translateZ(0);
+  }
+  100% {
+    transform: rotate(360deg) translateX(100px) rotate(-360deg) translateZ(50px);
+  }
+}
+
+/* 8D Shimmer Effect */
+@keyframes eightd-shimmer {
+  0% {
+    background-position: -200% center;
+    transform: translateZ(0);
+  }
+  100% {
+    background-position: 200% center;
+    transform: translateZ(20px);
+  }
+}
+
+/* 8D Magnetic Pull */
+@keyframes eightd-magnetic {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(5px, -5px, 10px);
+  }
+  50% {
+    transform: translate3d(-5px, 5px, 20px);
+  }
+  75% {
+    transform: translate3d(5px, 5px, 10px);
+  }
+}
+
+/* 8D Card Tilt */
+.eightd-card-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.eightd-card-tilt:hover {
+  transform: rotateX(5deg) rotateY(-5deg) translateZ(30px);
+  box-shadow: 
+    20px 20px 60px rgba(0, 0, 0, 0.3),
+    -5px -5px 30px rgba(34, 197, 94, 0.1);
+}
+
+/* 8D Button Press */
+.eightd-button {
+  transform-style: preserve-3d;
+  transition: all 0.2s ease;
+}
+
+.eightd-button:active {
+  transform: translateZ(-10px) scale(0.95);
+}
+
+.eightd-button:hover {
+  transform: translateZ(20px) scale(1.05);
+  box-shadow: 
+    0 15px 30px rgba(34, 197, 94, 0.3),
+    0 5px 15px rgba(34, 197, 94, 0.2);
+}
+
+/* 8D Text Depth */
+.eightd-text-depth {
+  text-shadow: 
+    1px 1px 0 rgba(34, 197, 94, 0.3),
+    2px 2px 0 rgba(34, 197, 94, 0.2),
+    3px 3px 0 rgba(34, 197, 94, 0.1),
+    4px 4px 20px rgba(34, 197, 94, 0.4);
+  transform: translateZ(20px);
+}
+
+/* 8D Particle System */
+.eightd-particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  animation: eightd-float 4s ease-in-out infinite;
+}
+
+/* 8D Glow Ring */
+.eightd-glow-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  animation: eightd-pulse-ring 2s ease-out infinite;
+}
+
+/* 8D Background Grid */
+.eightd-grid {
+  background-image: 
+    linear-gradient(rgba(34, 197, 94, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 197, 94, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: center top;
+}
+
+/* 8D Animation Classes */
+.animate-eightd-float {
+  animation: eightd-float 6s ease-in-out infinite;
+}
+
+.animate-eightd-rotate-3d {
+  animation: eightd-rotate-3d 20s linear infinite;
+}
+
+.animate-eightd-wave {
+  animation: eightd-wave 3s ease-in-out infinite;
+}
+
+.animate-eightd-depth-pulse {
+  animation: eightd-depth-pulse 4s ease-in-out infinite;
+}
+
+.animate-eightd-orbital {
+  animation: eightd-orbital 10s linear infinite;
+}
+
+.animate-eightd-shimmer {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(34, 197, 94, 0.1) 50%, 
+    transparent 100%);
+  background-size: 200% 100%;
+  animation: eightd-shimmer 3s linear infinite;
+}
+
+.animate-eightd-magnetic {
+  animation: eightd-magnetic 2s ease-in-out infinite;
+}
+
+/* 8D Utility Classes */
+.eightd-perspective-1000 {
+  perspective: 1000px;
+}
+
+.eightd-perspective-2000 {
+  perspective: 2000px;
+}
+
+.eightd-transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.eightd-translate-z-10 {
+  transform: translateZ(10px);
+}
+
+.eightd-translate-z-20 {
+  transform: translateZ(20px);
+}
+
+.eightd-translate-z-50 {
+  transform: translateZ(50px);
+}
+
+.eightd-rotate-x-10 {
+  transform: rotateX(10deg);
+}
+
+.eightd-rotate-y-10 {
+  transform: rotateY(10deg);
+}
+
+/* 8D Interactive Effects */
+.eightd-interactive {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eightd-interactive:hover {
+  transform: translateY(-10px) translateZ(30px) rotateX(5deg) rotateY(-5deg);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.3),
+    0 10px 20px rgba(34, 197, 94, 0.2);
+}
+
+/* 8D Loading Spinner */
+.eightd-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(34, 197, 94, 0.1);
+  border-top-color: #22c55e;
+  border-radius: 50%;
+  animation: eightd-rotate-3d 1s linear infinite;
+  transform-style: preserve-3d;
+}
+
+/* 8D Progress Bar */
+.eightd-progress {
+  height: 8px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  transform: translateZ(10px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.eightd-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a, #22c55e);
+  background-size: 200% 100%;
+  animation: eightd-shimmer 2s linear infinite;
+  transform: translateZ(20px);
+}
+
+/* ==========================================
+   PROGRAMMATIC VIBE - PROFESSIONAL STYLING
+   ========================================== */
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) translateX(50px);
+    opacity: 0;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(34, 197, 94, 0.6);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes matrix {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes code-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes border-flow {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes neon-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.8;
+  }
+  94% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0.9;
+  }
+  98% {
+    opacity: 1;
+  }
+}
+
+/* ==========================================
+   ANIMATION CLASSES
+   ========================================== */
+
+.animate-float {
+  animation: float linear infinite;
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 8s ease infinite;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-scan-line {
+  animation: scan-line 3s linear infinite;
+}
+
+.animate-typing {
+  animation: typing 3s steps(40, end);
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.animate-matrix {
+  animation: matrix 20s linear infinite;
+}
+
+.animate-code-fade {
+  animation: code-fade 0.5s ease-out;
+}
+
+.animate-border-flow {
+  background-size: 200% 200%;
+  animation: border-flow 3s linear infinite;
+}
+
+.animate-neon-flicker {
+  animation: neon-flicker 4s infinite;
+}
+
+/* ==========================================
+   CUSTOM STYLES - PROGRAMMATIC VIBE
+   ========================================== */
+
+/* Cyber grid background */
+.cyber-grid {
+  background-image: 
+    linear-gradient(rgba(34, 197, 94, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 197, 94, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Glass morphism with cyber edge */
+.glass-cyber {
+  background: rgba(5, 13, 24, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+  box-shadow: 
+    0 0 40px rgba(34, 197, 94, 0.05),
+    inset 0 0 20px rgba(34, 197, 94, 0.02);
+}
+
+/* Neon border effect */
+.neon-border {
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 
+    0 0 10px rgba(34, 197, 94, 0.2),
+    inset 0 0 10px rgba(34, 197, 94, 0.1);
+}
+
+/* Code block styling */
+.code-block {
+  background: linear-gradient(135deg, rgba(5, 13, 24, 0.9) 0%, rgba(8, 21, 37, 0.9) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  font-family: 'Courier New', monospace;
+}
+
+/* Terminal cursor effect */
+.terminal-cursor::after {
+  content: '|';
+  animation: blink 1s step-end infinite;
+}
+
+/* Progress bar with cyber style */
+.progress-cyber {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  overflow: hidden;
+}
+
+.progress-cyber-fill {
+  background: linear-gradient(90deg, #22c55e, #16a34a, #22c55e);
+  background-size: 200% 100%;
+  animation: gradient 2s linear infinite;
+}
+
+/* Card hover effect */
+.card-cyber {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+}
+
+.card-cyber:hover {
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 
+    0 0 30px rgba(34, 197, 94, 0.2),
+    0 0 60px rgba(34, 197, 94, 0.1);
+  transform: translateY(-4px);
+}
+
+/* Button cyber style */
+.btn-cyber {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-cyber::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-cyber:hover::before {
+  left: 100%;
+}
+
+.btn-cyber:hover {
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+/* Input cyber style */
+.input-cyber {
+  background: rgba(5, 13, 24, 0.8);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  transition: all 0.3s ease;
+}
+
+.input-cyber:focus {
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+  outline: none;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(5, 13, 24, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.5);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(34, 197, 94, 0.3);
+  color: white;
+}
+
+/* ==========================================
+   UTILITY CLASSES
+   ========================================== */
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.border-glow {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+}
+
+.bg-pattern {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(34, 197, 94, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
+}
+
+/* Loading shimmer effect */
+.shimmer {
+  background: linear-gradient(90deg, 
+    rgba(34, 197, 94, 0.05) 0%, 
+    rgba(34, 197, 94, 0.1) 50%, 
+    rgba(34, 197, 94, 0.05) 100%);
+  background-size: 200% 100%;
+  animation: gradient 2s linear infinite;
+}
