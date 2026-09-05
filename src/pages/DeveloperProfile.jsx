@@ -16,7 +16,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-const API_URL = "http://localhost:3013/api";
+import { API_URL } from "../utils/config";
 
 const DeveloperProfile = () => {
   const { username } = useParams();
@@ -49,15 +49,12 @@ const DeveloperProfile = () => {
           );
         }
 
-        const developerData =
-          data.developer;
+        const developerData = data.developer;
 
         setDeveloper(developerData);
 
         if (developerData?.projects) {
-          setProjects(
-            developerData.projects
-          );
+          setProjects(developerData.projects);
         } else {
           setProjects([]);
         }

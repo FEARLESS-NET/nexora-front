@@ -9,7 +9,7 @@ import {
   Filter,
 } from "lucide-react";
 
-const API_URL = "http://localhost:3013/api";
+import { API_URL } from "../../utils/config";
 
 const Proposals = () => {
   const [proposals, setProposals] = useState([]);

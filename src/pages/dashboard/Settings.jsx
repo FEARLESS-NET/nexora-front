@@ -14,8 +14,14 @@ import {
   Camera,
 } from "lucide-react";
 
-const AUTH_API_URL = "http://localhost:3013/api/auth";
-const USER_API_URL = "http://localhost:3013/api/users";
+// ==========================================
+// API CONFIG
+// ==========================================
+
+import { API_URL } from "../../utils/config";
+
+const AUTH_API_URL = `${API_URL}/auth`;
+const USER_API_URL = `${API_URL}/users`;
 
 const Settings = () => {
   const [loading, setLoading] = useState(true);

@@ -10,12 +10,13 @@ import {
   Trash2,
   Edit3,
   Loader2,
-  Building2,
 } from "lucide-react";
 
 import { useAuth } from "../../hooks/useAuth";
 
-const API_URL = "http://localhost:3013/api/projects";
+import { API_URL as BASE_API_URL } from "../../utils/config";
+
+const API_URL = `${BASE_API_URL}/projects`;
 
 const emptyForm = {
   title: "",

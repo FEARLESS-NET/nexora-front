@@ -11,8 +11,7 @@ import {
 
 import { useAuth } from "../../hooks/useAuth";
 
-const API_URL =
-  "http://localhost:3013/api";
+import { API_URL } from "../../utils/config";
 
 const Profile = () => {
   const {

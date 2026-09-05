@@ -23,11 +23,9 @@ import {
 
 import { io } from "socket.io-client";
 
-const API_URL =
-  "http://localhost:3013/api/messages";
+import { API_URL as BASE_API_URL, SOCKET_URL } from "../../utils/config";
 
-const SOCKET_URL =
-  "http://localhost:3013";
+const API_URL = `${BASE_API_URL}/messages`;
 
 const EMOJIS = [
   "😀",

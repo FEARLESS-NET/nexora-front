@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3013/api";
+import { API_URL } from "./config";
 
 export const api = async (endpoint, options = {}) => {
   const token = localStorage.getItem("token");

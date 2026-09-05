@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const API_URL = "http://localhost:3013/api";
+import { API_URL } from "../../utils/config";
 
 const iconMap = {
   proposal_received: Briefcase,

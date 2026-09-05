@@ -9,7 +9,9 @@ import {
   Shield,
 } from "lucide-react";
 
-const API_URL = "http://localhost:3013/api/admin";
+import { API_URL as BASE_API_URL } from "../../utils/config";
+
+const API_URL = `${BASE_API_URL}/admin`;
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);

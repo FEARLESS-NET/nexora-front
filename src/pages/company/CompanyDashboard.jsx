@@ -8,7 +8,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-const API_URL = "http://localhost:3013/api";
+import { API_URL } from "../../utils/config";
 
 const CompanyDashboard = () => {
   const [company, setCompany] = useState(null);
