@@ -23,7 +23,10 @@ import {
 
 import { io } from "socket.io-client";
 
-import { API_URL as BASE_API_URL, SOCKET_URL } from "../../utils/config";
+import {
+  API_URL as BASE_API_URL,
+  SOCKET_URL,
+} from "../../utils/config";
 
 const API_URL = `${BASE_API_URL}/messages`;
 
@@ -63,6 +66,10 @@ const EMOJIS = [
 const Messages = () => {
   const location = useLocation();
 
+  // ========================================
+  // STATE
+  // ========================================
+
   const [conversations, setConversations] =
     useState([]);
 
@@ -96,6 +103,10 @@ const Messages = () => {
   const [socket, setSocket] =
     useState(null);
 
+  // ========================================
+  // REFS
+  // ========================================
+
   const fileInputRef =
     useRef(null);
 
@@ -104,6 +115,23 @@ const Messages = () => {
 
   const typingTimeoutRef =
     useRef(null);
+
+  // Hozir tanlangan chatni doim saqlab turadi
+  const selectedChatRef =
+    useRef(null);
+
+  // Oldingi messages requestni bekor qilish uchun
+  const messagesRequestRef =
+    useRef(null);
+
+  // ========================================
+  // SELECTED CHAT REF
+  // ========================================
+
+  useEffect(() => {
+    selectedChatRef.current =
+      selectedChat;
+  }, [selectedChat]);
 
   // ========================================
   // FETCH CONVERSATIONS
@@ -114,17 +142,21 @@ const Messages = () => {
       const token =
         localStorage.getItem("token");
 
-      if (!token) return;
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-      const response = await fetch(
-        `${API_URL}/conversations`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      );
+      const response =
+        await fetch(
+          `${API_URL}/conversations`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -135,96 +167,127 @@ const Messages = () => {
       const data =
         await response.json();
 
-      if (data.success) {
-        const serverConversations =
-          data.conversations || [];
+      if (!data.success) {
+        setConversations([]);
+        return;
+      }
 
-        setConversations(
-          serverConversations
+      const serverConversations =
+        data.conversations || [];
+
+      setConversations(
+        serverConversations
+      );
+
+      // ====================================
+      // URL ORQALI KELGAN USER
+      // ====================================
+
+      const params =
+        new URLSearchParams(
+          location.search
         );
 
+      const userId =
+        params.get("user");
+
+      const stateUser =
+        location.state?.user;
+
+      if (userId) {
         // --------------------------------
-        // URL ORQALI KELGAN USER
+        // EXISTING CONVERSATION
         // --------------------------------
 
-        const params =
-          new URLSearchParams(
-            location.search
+        const existingConversation =
+          serverConversations.find(
+            (item) =>
+              item.user?._id === userId
           );
 
-        const userId =
-          params.get("user");
+        if (existingConversation) {
+          selectedChatRef.current =
+            existingConversation;
 
-        const stateUser =
-          location.state?.user;
-
-        if (userId) {
-          // Existing conversation
-          const existingConversation =
-            serverConversations.find(
-              (item) =>
-                item.user?._id === userId
-            );
-
-          if (existingConversation) {
-            setSelectedChat(
-              existingConversation
-            );
-          }
-
-          // New conversation
-          else if (
-            stateUser &&
-            stateUser._id === userId
-          ) {
-            setSelectedChat({
-              user: {
-                _id: stateUser._id,
-                name:
-                  stateUser.name ||
-                  "User",
-                username:
-                  stateUser.username ||
-                  "",
-                avatar:
-                  stateUser.avatar ||
-                  "",
-              },
-              lastMessage: null,
-              unreadCount: 0,
-            });
-          }
+          setSelectedChat(
+            existingConversation
+          );
 
           return;
         }
 
         // --------------------------------
-        // OLD SELECTED CHAT
+        // NEW CONVERSATION
         // --------------------------------
 
-        setSelectedChat(
-          (current) => {
-            if (current) {
-              const updated =
-                serverConversations.find(
-                  (item) =>
-                    item.user?._id ===
-                    current.user?._id
-                );
+        if (
+          stateUser &&
+          stateUser._id === userId
+        ) {
+          const newChat = {
+            user: {
+              _id: stateUser._id,
+              name:
+                stateUser.name ||
+                "User",
+              username:
+                stateUser.username ||
+                "",
+              avatar:
+                stateUser.avatar ||
+                "",
+            },
+            lastMessage: null,
+            unreadCount: 0,
+          };
 
-              return (
-                updated ||
-                current
+          selectedChatRef.current =
+            newChat;
+
+          setSelectedChat(
+            newChat
+          );
+
+          return;
+        }
+      }
+
+      // ====================================
+      // CURRENT CHATNI SAQLAB QOLISH
+      // ====================================
+
+      setSelectedChat(
+        (current) => {
+          if (current?.user?._id) {
+            const updated =
+              serverConversations.find(
+                (item) =>
+                  item.user?._id ===
+                  current.user._id
               );
+
+            if (updated) {
+              selectedChatRef.current =
+                updated;
+
+              return updated;
             }
 
-            return (
-              serverConversations[0] ||
-              null
-            );
+            return current;
           }
-        );
-      }
+
+          // Birinchi conversation
+          // faqat hali chat tanlanmagan bo'lsa
+          const firstChat =
+            serverConversations[0] ||
+            null;
+
+          selectedChatRef.current =
+            firstChat;
+
+          return firstChat;
+        }
+      );
     } catch (error) {
       console.error(
         "❌ Fetch conversations error:",
@@ -246,17 +309,42 @@ const Messages = () => {
       const token =
         localStorage.getItem("token");
 
-      if (!token) return;
+      if (!token || !userId) {
+        setMessages([]);
+        return;
+      }
 
-      const response = await fetch(
-        `${API_URL}/conversation/${userId}`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      );
+      // ------------------------------------
+      // OLD REQUESTNI BEKOR QILISH
+      // ------------------------------------
+
+      if (
+        messagesRequestRef.current
+      ) {
+        messagesRequestRef.current.abort();
+      }
+
+      const controller =
+        new AbortController();
+
+      messagesRequestRef.current =
+        controller;
+
+      // Eski chat xabarlarini darhol tozalash
+      setMessages([]);
+
+      const response =
+        await fetch(
+          `${API_URL}/conversation/${userId}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+            signal:
+              controller.signal,
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -267,6 +355,18 @@ const Messages = () => {
       const data =
         await response.json();
 
+      // ------------------------------------
+      // USER BOSHQA CHATGA O'TIB KETGAN
+      // BO'LSA ESKI RESPONSE KERAK EMAS
+      // ------------------------------------
+
+      if (
+        selectedChatRef.current
+          ?.user?._id !== userId
+      ) {
+        return;
+      }
+
       if (data.success) {
         setMessages(
           data.messages || []
@@ -275,13 +375,115 @@ const Messages = () => {
         setMessages([]);
       }
     } catch (error) {
+      // Abort xatosi normal holat
+      if (
+        error.name ===
+        "AbortError"
+      ) {
+        return;
+      }
+
       console.error(
         "❌ Fetch messages error:",
         error
       );
 
-      setMessages([]);
+      if (
+        selectedChatRef.current
+          ?.user?._id === userId
+      ) {
+        setMessages([]);
+      }
     }
+  };
+
+  // ========================================
+  // SELECT CHAT
+  // ========================================
+
+  const handleSelectChat = (
+    chat
+  ) => {
+    const userId =
+      chat?.user?._id;
+
+    if (!userId) {
+      return;
+    }
+
+    // Bir xil chatni qayta bosish
+    if (
+      selectedChatRef.current
+        ?.user?._id === userId
+    ) {
+      return;
+    }
+
+    // ------------------------------------
+    // TYPINGNI TO'XTATISH
+    // ------------------------------------
+
+    setTyping(false);
+
+    if (
+      typingTimeoutRef.current
+    ) {
+      clearTimeout(
+        typingTimeoutRef.current
+      );
+
+      typingTimeoutRef.current =
+        null;
+    }
+
+    // ------------------------------------
+    // OLD REQUESTNI BEKOR QILISH
+    // ------------------------------------
+
+    if (
+      messagesRequestRef.current
+    ) {
+      messagesRequestRef.current.abort();
+
+      messagesRequestRef.current =
+        null;
+    }
+
+    // ------------------------------------
+    // YANGI CHATNI DARHOL TANLASH
+    // ------------------------------------
+
+    selectedChatRef.current =
+      chat;
+
+    setSelectedChat(chat);
+
+    // Eski messages ko'rinmasin
+    setMessages([]);
+
+    // Emoji yopiladi
+    setShowEmoji(false);
+
+    // Rasm preview tozalanadi
+    if (imagePreview) {
+      URL.revokeObjectURL(
+        imagePreview
+      );
+    }
+
+    setSelectedImage(null);
+    setImagePreview("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value =
+        "";
+    }
+
+    // ------------------------------------
+    // YANGI CHAT MESSAGES
+    // ------------------------------------
+
+    fetchMessages(userId);
   };
 
   // ========================================
@@ -290,25 +492,8 @@ const Messages = () => {
 
   useEffect(() => {
     fetchConversations();
-  }, [location.search]);
-
-  // ========================================
-  // SELECTED CHAT
-  // ========================================
-
-  useEffect(() => {
-    if (
-      !selectedChat?.user?._id
-    ) {
-      setMessages([]);
-      return;
-    }
-
-    fetchMessages(
-      selectedChat.user._id
-    );
   }, [
-    selectedChat?.user?._id,
+    location.search,
   ]);
 
   // ========================================
@@ -327,23 +512,24 @@ const Messages = () => {
       return;
     }
 
-    const newSocket = io(
-      SOCKET_URL,
-      {
-        auth: {
-          token,
-        },
+    const newSocket =
+      io(
+        SOCKET_URL,
+        {
+          auth: {
+            token,
+          },
 
-        transports: [
-          "websocket",
-          "polling",
-        ],
+          transports: [
+            "websocket",
+            "polling",
+          ],
 
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-      }
-    );
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+        }
+      );
 
     newSocket.on(
       "connect",
@@ -388,94 +574,54 @@ const Messages = () => {
   // ========================================
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      return;
+    }
 
-    const handleNewMessage =
-      (newMessage) => {
-        console.log(
-          "📩 NEW MESSAGE:",
-          newMessage
-        );
+    // ------------------------------------
+    // NEW MESSAGE
+    // ------------------------------------
 
-        const senderId =
-          newMessage.sender?._id ||
-          newMessage.sender;
+    const handleNewMessage = (
+      newMessage
+    ) => {
+      console.log(
+        "📩 NEW MESSAGE:",
+        newMessage
+      );
 
-        const receiverId =
-          newMessage.receiver?._id ||
-          newMessage.receiver;
+      const senderId =
+        newMessage.sender?._id ||
+        newMessage.sender;
 
-        const selectedUserId =
-          selectedChat?.user?._id;
+      const receiverId =
+        newMessage.receiver?._id ||
+        newMessage.receiver;
 
-        if (
-          selectedUserId &&
-          (
-            senderId ===
-              selectedUserId ||
-            receiverId ===
-              selectedUserId
-          )
-        ) {
-          setMessages(
-            (current) => {
-              if (
-                current.some(
-                  (item) =>
-                    item._id ===
-                    newMessage._id
-                )
-              ) {
-                return current;
-              }
+      const selectedUserId =
+        selectedChatRef.current
+          ?.user?._id;
 
-              return [
-                ...current,
-                newMessage,
-              ];
-            }
-          );
+      // --------------------------------
+      // CURRENT CHAT
+      // --------------------------------
 
-          return;
-        }
-
-        fetchConversations();
-      };
-
-    const handleTyping =
-      ({ userId }) => {
-        if (
-          userId ===
-          selectedChat?.user?._id
-        ) {
-          setTyping(true);
-        }
-      };
-
-    const handleStopTyping =
-      ({ userId }) => {
-        if (
-          userId ===
-          selectedChat?.user?._id
-        ) {
-          setTyping(false);
-        }
-      };
-
-    const handleMessageSent =
-      (sentMessage) => {
-        console.log(
-          "📤 MESSAGE SENT:",
-          sentMessage
-        );
-
+      if (
+        selectedUserId &&
+        (
+          senderId ===
+            selectedUserId ||
+          receiverId ===
+            selectedUserId
+        )
+      ) {
         setMessages(
           (current) => {
             if (
               current.some(
                 (item) =>
                   item._id ===
-                  sentMessage._id
+                  newMessage._id
               )
             ) {
               return current;
@@ -483,11 +629,108 @@ const Messages = () => {
 
             return [
               ...current,
-              sentMessage,
+              newMessage,
             ];
           }
         );
-      };
+
+        return;
+      }
+
+      // --------------------------------
+      // OTHER CHAT
+      // --------------------------------
+
+      fetchConversations();
+    };
+
+    // ------------------------------------
+    // TYPING
+    // ------------------------------------
+
+    const handleTyping = ({
+      userId,
+    }) => {
+      if (
+        userId ===
+        selectedChatRef.current
+          ?.user?._id
+      ) {
+        setTyping(true);
+      }
+    };
+
+    // ------------------------------------
+    // STOP TYPING
+    // ------------------------------------
+
+    const handleStopTyping = ({
+      userId,
+    }) => {
+      if (
+        userId ===
+        selectedChatRef.current
+          ?.user?._id
+      ) {
+        setTyping(false);
+      }
+    };
+
+    // ------------------------------------
+    // MESSAGE SENT
+    // ------------------------------------
+
+    const handleMessageSent = (
+      sentMessage
+    ) => {
+      console.log(
+        "📤 MESSAGE SENT:",
+        sentMessage
+      );
+
+      const selectedUserId =
+        selectedChatRef.current
+          ?.user?._id;
+
+      const senderId =
+        sentMessage.sender?._id ||
+        sentMessage.sender;
+
+      const receiverId =
+        sentMessage.receiver?._id ||
+        sentMessage.receiver;
+
+      if (
+        !selectedUserId ||
+        (
+          senderId !==
+            selectedUserId &&
+          receiverId !==
+            selectedUserId
+        )
+      ) {
+        return;
+      }
+
+      setMessages(
+        (current) => {
+          if (
+            current.some(
+              (item) =>
+                item._id ===
+                sentMessage._id
+            )
+          ) {
+            return current;
+          }
+
+          return [
+            ...current,
+            sentMessage,
+          ];
+        }
+      );
+    };
 
     socket.on(
       "new_message",
@@ -530,10 +773,7 @@ const Messages = () => {
         handleMessageSent
       );
     };
-  }, [
-    socket,
-    selectedChat?.user?._id,
-  ]);
+  }, [socket]);
 
   // ========================================
   // AUTO SCROLL
@@ -560,15 +800,20 @@ const Messages = () => {
     const file =
       event.target.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (
-      !file.type.startsWith("image/")
+      !file.type.startsWith(
+        "image/"
+      )
     ) {
       alert(
         "Faqat rasm fayllarini yuborish mumkin."
       );
 
+      event.target.value = "";
       return;
     }
 
@@ -580,7 +825,15 @@ const Messages = () => {
         "Rasm hajmi 10MB dan oshmasligi kerak."
       );
 
+      event.target.value = "";
       return;
+    }
+
+    // Eski previewni tozalash
+    if (imagePreview) {
+      URL.revokeObjectURL(
+        imagePreview
+      );
     }
 
     setSelectedImage(file);
@@ -614,7 +867,9 @@ const Messages = () => {
   // EMOJI
   // ========================================
 
-  const addEmoji = (emoji) => {
+  const addEmoji = (
+    emoji
+  ) => {
     setMessage(
       (current) =>
         current + emoji
@@ -635,7 +890,8 @@ const Messages = () => {
 
     if (
       !socket ||
-      !selectedChat?.user?._id
+      !selectedChatRef.current
+        ?.user?._id
     ) {
       return;
     }
@@ -644,7 +900,8 @@ const Messages = () => {
       "typing",
       {
         receiverId:
-          selectedChat.user._id,
+          selectedChatRef.current
+            .user._id,
       }
     );
 
@@ -658,7 +915,8 @@ const Messages = () => {
           "stop_typing",
           {
             receiverId:
-              selectedChat.user._id,
+              selectedChatRef.current
+                .user._id,
           }
         );
       }, 1000);
@@ -679,8 +937,12 @@ const Messages = () => {
       return;
     }
 
+    const receiverId =
+      selectedChatRef.current
+        ?.user?._id;
+
     if (
-      !selectedChat?.user?._id ||
+      !receiverId ||
       sending
     ) {
       return;
@@ -714,7 +976,7 @@ const Messages = () => {
 
       formData.append(
         "receiverId",
-        selectedChat.user._id
+        receiverId
       );
 
       if (selectedImage) {
@@ -726,7 +988,7 @@ const Messages = () => {
 
       console.log(
         "📤 Sending message to:",
-        selectedChat.user._id
+        receiverId
       );
 
       const response =
@@ -785,18 +1047,18 @@ const Messages = () => {
 
         setShowEmoji(false);
 
+        // Typing stop
         if (socket) {
           socket.emit(
             "stop_typing",
             {
-              receiverId:
-                selectedChat
-                  .user
-                  ._id,
+              receiverId,
             }
           );
         }
 
+        // Conversationsni yangilash
+        // lekin selected chat o'zgarmaydi
         await fetchConversations();
       }
     } catch (error) {
@@ -838,7 +1100,9 @@ const Messages = () => {
   const formatTime = (
     dateString
   ) => {
-    if (!dateString) return "";
+    if (!dateString) {
+      return "";
+    }
 
     const date =
       new Date(dateString);
@@ -861,6 +1125,44 @@ const Messages = () => {
   };
 
   // ========================================
+  // CLOSE CHAT
+  // ========================================
+
+  const closeChat = () => {
+    if (
+      messagesRequestRef.current
+    ) {
+      messagesRequestRef.current.abort();
+
+      messagesRequestRef.current =
+        null;
+    }
+
+    if (
+      typingTimeoutRef.current
+    ) {
+      clearTimeout(
+        typingTimeoutRef.current
+      );
+
+      typingTimeoutRef.current =
+        null;
+    }
+
+    setTyping(false);
+    setMessages([]);
+
+    selectedChatRef.current =
+      null;
+
+    setSelectedChat(null);
+
+    setShowEmoji(false);
+
+    removeImage();
+  };
+
+  // ========================================
   // LOADING
   // ========================================
 
@@ -877,9 +1179,11 @@ const Messages = () => {
   // ========================================
 
   return (
-    <div className="h-full flex flex-col eightd-transform-style-3d  p-20">
+    <div className="h-full flex flex-col eightd-transform-style-3d p-20">
 
-      {/* HEADER */}
+      {/* ====================================
+          HEADER
+      ==================================== */}
 
       <div className="eightd-card-tilt mb-3 shrink-0 eightd-translate-z-20">
 
@@ -893,11 +1197,15 @@ const Messages = () => {
 
       </div>
 
-      {/* CHAT */}
+      {/* ====================================
+          CHAT CONTAINER
+      ==================================== */}
 
       <div className="eightd-card-tilt flex-1 min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] lg:grid lg:grid-cols-[280px_1fr] eightd-transform-style-3d">
 
-        {/* SIDEBAR */}
+        {/* ==================================
+            SIDEBAR
+        ================================== */}
 
         <div
           className={`eightd-transform-style-3d min-h-0 border-r border-white/10 ${
@@ -906,6 +1214,8 @@ const Messages = () => {
               : "flex"
           } flex-col`}
         >
+
+          {/* SEARCH */}
 
           <div className="shrink-0 border-b border-white/10 p-3 eightd-translate-z-10">
 
@@ -923,6 +1233,8 @@ const Messages = () => {
 
           </div>
 
+          {/* CONVERSATIONS */}
+
           <div className="min-h-0 flex-1 overflow-y-auto">
 
             {conversations.length === 0 ? (
@@ -937,7 +1249,7 @@ const Messages = () => {
                       chat.user._id
                     }
                     onClick={() =>
-                      setSelectedChat(
+                      handleSelectChat(
                         chat
                       )
                     }
@@ -949,6 +1261,8 @@ const Messages = () => {
                         : "hover:bg-white/[0.03]"
                     }`}
                   >
+
+                    {/* AVATAR */}
 
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-green-500/10 font-semibold text-green-400">
 
@@ -971,6 +1285,8 @@ const Messages = () => {
                       )}
 
                     </div>
+
+                    {/* INFO */}
 
                     <div className="min-w-0 flex-1">
 
@@ -1026,7 +1342,9 @@ const Messages = () => {
 
         </div>
 
-        {/* CHAT */}
+        {/* ==================================
+            CHAT AREA
+        ================================== */}
 
         <div
           className={`min-h-0 min-w-0 flex-col ${
@@ -1036,20 +1354,26 @@ const Messages = () => {
           }`}
         >
 
-          {/* CHAT HEADER */}
+          {/* =================================
+              CHAT HEADER
+          ================================= */}
 
           <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
 
             <div className="flex min-w-0 items-center gap-3">
 
+              {/* MOBILE BACK */}
+
               <button
-                onClick={() =>
-                  setSelectedChat(null)
+                onClick={
+                  closeChat
                 }
                 className="rounded-lg p-1.5 text-gray-500 hover:bg-white/5 hover:text-white lg:hidden"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
+
+              {/* AVATAR */}
 
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-green-500/10 font-semibold text-green-400">
 
@@ -1076,6 +1400,8 @@ const Messages = () => {
                 )}
 
               </div>
+
+              {/* USER INFO */}
 
               <div>
 
@@ -1111,24 +1437,31 @@ const Messages = () => {
 
           </div>
 
-          {/* MESSAGES */}
+          {/* =================================
+              MESSAGES
+          ================================= */}
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
 
             <div className="flex justify-center">
+
               <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-gray-600">
                 Today
               </span>
+
             </div>
 
             {messages.length === 0 ? (
               <div className="flex h-full items-center justify-center text-xs text-gray-500">
+
                 No messages yet.
                 Start the conversation!
+
               </div>
             ) : (
               messages.map(
                 (item) => {
+
                   const senderId =
                     item.sender?._id ||
                     item.sender;
@@ -1161,6 +1494,8 @@ const Messages = () => {
                         }`}
                       >
 
+                        {/* IMAGE */}
+
                         {item.imageUrl && (
                           <a
                             href={
@@ -1170,6 +1505,7 @@ const Messages = () => {
                             rel="noopener noreferrer"
                             className="block"
                           >
+
                             <img
                               src={
                                 item.imageUrl
@@ -1177,8 +1513,11 @@ const Messages = () => {
                               alt="Message attachment"
                               className="max-h-60 w-full max-w-md object-cover"
                             />
+
                           </a>
                         )}
+
+                        {/* CONTENT */}
 
                         {item.content && (
                           <div className="px-3 py-2">
@@ -1209,6 +1548,8 @@ const Messages = () => {
 
                           </div>
                         )}
+
+                        {/* IMAGE ONLY */}
 
                         {!item.content && (
                           <div className="px-3 pb-2 pt-1">
@@ -1243,12 +1584,16 @@ const Messages = () => {
             )}
 
             <div
-              ref={messagesEndRef}
+              ref={
+                messagesEndRef
+              }
             />
 
           </div>
 
-          {/* IMAGE PREVIEW */}
+          {/* =================================
+              IMAGE PREVIEW
+          ================================= */}
 
           {imagePreview && (
             <div className="border-t border-white/10 bg-gray-950 px-3 pt-2">
@@ -1278,7 +1623,9 @@ const Messages = () => {
             </div>
           )}
 
-          {/* EMOJI */}
+          {/* =================================
+              EMOJI
+          ================================= */}
 
           {showEmoji && (
             <div className="border-t border-white/10 bg-gray-950 p-2">
@@ -1309,11 +1656,15 @@ const Messages = () => {
             </div>
           )}
 
-          {/* INPUT */}
+          {/* =================================
+              INPUT
+          ================================= */}
 
           <div className="shrink-0 border-t border-white/10 bg-gray-950/80 p-4">
 
             <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2">
+
+              {/* FILE INPUT */}
 
               <input
                 ref={
@@ -1327,6 +1678,8 @@ const Messages = () => {
                 }
               />
 
+              {/* ATTACHMENT */}
+
               <button
                 type="button"
                 onClick={() =>
@@ -1337,6 +1690,8 @@ const Messages = () => {
               >
                 <Paperclip className="h-4 w-4" />
               </button>
+
+              {/* MESSAGE INPUT */}
 
               <textarea
                 value={
@@ -1352,6 +1707,8 @@ const Messages = () => {
                 placeholder="Write a message..."
                 className="max-h-24 min-h-[32px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-xs leading-4 text-white outline-none placeholder:text-gray-600"
               />
+
+              {/* EMOJI */}
 
               <button
                 type="button"
@@ -1370,6 +1727,8 @@ const Messages = () => {
               >
                 <Smile className="h-4 w-4" />
               </button>
+
+              {/* SEND */}
 
               <button
                 type="button"
@@ -1396,6 +1755,8 @@ const Messages = () => {
               </button>
 
             </div>
+
+            {/* FOOTER */}
 
             <div className="mt-2 flex items-center justify-between">
 
