@@ -1301,20 +1301,45 @@ const Messages = () => {
   // ========================================
 
   const toggleMessageSelect =
-    (messageId) => {
+    (item) => {
+      const currentUser =
+        localStorage.getItem("user");
+
+      let currentUserId = null;
+
+      try {
+        const user = JSON.parse(
+          currentUser || "{}"
+        );
+
+        currentUserId = user?._id;
+      } catch {
+        currentUserId = null;
+      }
+
+      const senderId =
+        item.sender?._id ||
+        item.sender;
+
+      // Faqat o'z xabaringni tanlash mumkin
+      if (
+        !currentUserId ||
+        senderId?.toString() !==
+          currentUserId.toString()
+      ) {
+        return;
+      }
+
       setSelectedMessageIds(
         (current) =>
-          current.includes(
-            messageId
-          )
+          current.includes(item._id)
             ? current.filter(
                 (id) =>
-                  id !==
-                  messageId
+                  id !== item._id
               )
             : [
                 ...current,
-                messageId,
+                item._id,
               ]
       );
     };
@@ -1325,9 +1350,42 @@ const Messages = () => {
 
   const toggleSelectAll =
     () => {
+      const currentUser =
+        localStorage.getItem("user");
+
+      let currentUserId = null;
+
+      try {
+        const user = JSON.parse(
+          currentUser || "{}"
+        );
+
+        currentUserId = user?._id;
+      } catch {
+        currentUserId = null;
+      }
+
+      if (!currentUserId) {
+        return;
+      }
+
+      const ownMessageIds =
+        messages
+          .filter((msg) => {
+            const senderId =
+              msg.sender?._id ||
+              msg.sender;
+
+            return (
+              senderId?.toString() ===
+              currentUserId.toString()
+            );
+          })
+          .map((msg) => msg._id);
+
       if (
         selectedMessageIds.length ===
-        messages.length
+        ownMessageIds.length
       ) {
         setSelectedMessageIds(
           []
@@ -1337,10 +1395,7 @@ const Messages = () => {
       }
 
       setSelectedMessageIds(
-        messages.map(
-          (msg) =>
-            msg._id
-        )
+        ownMessageIds
       );
     };
 
@@ -1378,7 +1433,7 @@ const Messages = () => {
 
         const response =
           await fetch(
-            `${API_URL}/selected`,
+            `${API_URL}/bulk`,
             {
               method:
                 "DELETE",
@@ -2231,14 +2286,49 @@ const Messages = () => {
                   }
                   className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white"
                 >
-                  {selectedMessageIds.length ===
-                  messages.length ? (
+                  {(() => {
+                    const currentUser =
+                      localStorage.getItem("user");
+
+                    let currentUserId = null;
+
+                    try {
+                      const user = JSON.parse(
+                        currentUser || "{}"
+                      );
+
+                      currentUserId =
+                        user?._id;
+                    } catch {
+                      currentUserId = null;
+                    }
+
+                    const ownCount =
+                      messages.filter(
+                        (msg) => {
+                          const senderId =
+                            msg.sender?._id ||
+                            msg.sender;
+
+                          return (
+                            senderId?.toString() ===
+                            currentUserId?.toString()
+                          );
+                        }
+                      ).length;
+
+                    return (
+                      selectedMessageIds.length ===
+                        ownCount &&
+                      ownCount > 0
+                    );
+                  })() ? (
                     <CheckSquare className="h-4 w-4 text-green-400" />
                   ) : (
                     <Square className="h-4 w-4" />
                   )}
 
-                  Select all
+                  Select my messages
                 </button>
 
                 <span className="text-[10px] text-gray-600">
@@ -2322,6 +2412,9 @@ const Messages = () => {
                     senderId ===
                     selectedUserId;
 
+                  const isOwnMessage =
+                    !isIncoming;
+
                   const isSelected =
                     selectedMessageIds.includes(
                       item._id
@@ -2341,26 +2434,24 @@ const Messages = () => {
 
                       {/* SELECT CHECKBOX */}
 
-                      {selectMode && (
-                        <button
-                          onClick={() =>
-                            toggleMessageSelect(
-                              item._id
-                            )
-                          }
-                          className={`mr-2 self-center ${
-                            isIncoming
-                              ? "order-first"
-                              : "order-last ml-2 mr-0"
-                          }`}
-                        >
-                          {isSelected ? (
-                            <CheckSquare className="h-5 w-5 text-green-400" />
-                          ) : (
-                            <Square className="h-5 w-5 text-gray-600 hover:text-gray-300" />
-                          )}
-                        </button>
-                      )}
+                      {selectMode &&
+                        isOwnMessage && (
+                          <button
+                            onClick={() =>
+                              toggleMessageSelect(
+                                item
+                              )
+                            }
+                            className="order-last ml-2 mr-0 self-center"
+                            title="Select message"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="h-5 w-5 text-green-400" />
+                            ) : (
+                              <Square className="h-5 w-5 text-gray-600 hover:text-gray-300" />
+                            )}
+                          </button>
+                        )}
 
                       <div
                         className={`relative max-w-[75%] overflow-visible ${
@@ -2372,19 +2463,21 @@ const Messages = () => {
 
                         {/* SINGLE DELETE */}
 
-                        {!selectMode && (
-                          <button
-                            onClick={() =>
-                              deleteSingleMessage(
-                                item._id
-                              )
-                            }
-                            className="absolute -top-2 right-1 z-10 hidden rounded-full border border-white/10 bg-[#111] p-1.5 text-gray-500 shadow-lg group-hover:block hover:text-red-400"
-                            title="Delete message"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
+                        {!selectMode &&
+                          isOwnMessage && (
+                            <button
+                              onClick={() =>
+                                deleteSingleMessage(
+                                  item._id
+                                )
+                              }
+                              disabled={actionLoading}
+                              className="absolute -top-2 right-1 z-10 hidden rounded-full border border-white/10 bg-[#111] p-1.5 text-gray-500 shadow-lg group-hover:block hover:text-red-400 disabled:opacity-40"
+                              title="Delete message"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
 
                         <div
                           className={`overflow-hidden rounded-xl ${
