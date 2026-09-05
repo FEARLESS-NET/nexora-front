@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 
 // ===============================
 // LAYOUTS
@@ -81,93 +81,273 @@ const AdminDashboard = lazy(() =>
 );
 
 // ======================================================
-// NEXORA INTRO / SPLASH SCREEN
+// PARTICLES
+// ======================================================
+
+const particles = [
+  [8, 18, 2, 1],
+  [14, 72, 1, 2],
+  [21, 34, 2, 3],
+  [27, 84, 1, 1],
+  [32, 14, 2, 2],
+  [39, 68, 1, 3],
+  [44, 26, 2, 1],
+  [49, 90, 1, 2],
+  [55, 12, 2, 3],
+  [61, 76, 1, 1],
+  [67, 29, 2, 2],
+  [72, 63, 1, 3],
+  [78, 18, 2, 1],
+  [84, 81, 1, 2],
+  [91, 39, 2, 3],
+  [5, 51, 1, 2],
+  [17, 91, 2, 1],
+  [25, 9, 1, 3],
+  [35, 48, 2, 2],
+  [47, 5, 1, 1],
+  [58, 45, 2, 3],
+  [69, 94, 1, 2],
+  [76, 47, 2, 1],
+  [88, 14, 1, 3],
+  [95, 68, 2, 2],
+];
+
+// ======================================================
+// NEXORA INTRO
 // ======================================================
 
 const NexoraIntro = ({ onFinish }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onFinish();
-    }, 3500);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [onFinish]);
 
   return (
-    <div className="fixed inset-0 z-[99999] overflow-hidden bg-[#010503] text-white">
+    <div className="fixed inset-0 z-[99999] overflow-hidden bg-[#010402] text-white">
 
-      {/* =========================================
-          BACKGROUND GLOW
-      ========================================= */}
+      {/* =================================================
+          DEEP BACKGROUND
+      ================================================= */}
 
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,120,0.07)_0%,rgba(0,20,10,0.35)_28%,#010402_70%)]" />
 
-        <div className="absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-500/[0.06] blur-[120px] animate-pulse" />
+      {/* Large atmospheric glow */}
 
-        <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/[0.05] blur-[80px]" />
+      <div
+        className="
+          absolute
+          left-1/2
+          top-1/2
+          h-[900px]
+          w-[900px]
+          -translate-x-1/2
+          -translate-y-1/2
+          rounded-full
+          bg-green-500/[0.05]
+          blur-[150px]
+          animate-pulse
+        "
+      />
 
-      </div>
+      <div
+        className="
+          absolute
+          left-1/2
+          top-1/2
+          h-[550px]
+          w-[550px]
+          -translate-x-1/2
+          -translate-y-1/2
+          rounded-full
+          bg-emerald-400/[0.07]
+          blur-[100px]
+        "
+      />
 
-      {/* =========================================
+      {/* =================================================
           PARTICLES
-      ========================================= */}
+      ================================================= */}
 
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="pointer-events-none absolute inset-0">
 
-        {Array.from({ length: 35 }).map((_, index) => (
+        {particles.map(([left, top, size, delay], index) => (
           <span
             key={index}
-            className="absolute h-1 w-1 rounded-full bg-green-400/60 animate-pulse"
+            className="
+              absolute
+              rounded-full
+              bg-green-300
+              shadow-[0_0_8px_rgba(74,222,128,0.9)]
+              animate-pulse
+            "
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
-              animationDuration: `${1.5 + Math.random() * 2}s`,
+              left: `${left}%`,
+              top: `${top}%`,
+              width: `${size}px`,
+              height: `${size}px`,
+              animationDelay: `${delay * 0.4}s`,
+              animationDuration: `${1.5 + delay * 0.4}s`,
             }}
           />
         ))}
 
       </div>
 
-      {/* =========================================
-          CENTER
-      ========================================= */}
+      {/* =================================================
+          CENTER STAGE
+      ================================================= */}
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center">
+      <div className="relative z-20 flex min-h-screen items-center justify-center">
 
-        <div className="relative flex flex-col items-center">
+        <div className="relative flex flex-col items-center justify-center">
 
-          {/* =====================================
-              ENERGY RAYS
-          ===================================== */}
+          {/* =================================================
+              HUGE ENERGY RAYS
+          ================================================= */}
 
-          <div className="absolute left-1/2 top-1/2 h-[650px] w-[650px] -translate-x-1/2 -translate-y-1/2">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[850px] w-[850px] -translate-x-1/2 -translate-y-1/2">
 
-            <div className="absolute left-1/2 top-0 h-40 w-[2px] -translate-x-1/2 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-60 blur-[1px] animate-pulse" />
+            {/* Vertical */}
 
-            <div className="absolute bottom-0 left-1/2 h-40 w-[2px] -translate-x-1/2 rotate-180 bg-gradient-to-b from-transparent via-green-400 to-transparent opacity-60 blur-[1px] animate-pulse" />
+            <div
+              className="
+                absolute
+                left-1/2
+                top-0
+                h-[280px]
+                w-[3px]
+                -translate-x-1/2
+                bg-gradient-to-b
+                from-transparent
+                via-green-300
+                to-transparent
+                opacity-70
+                blur-[2px]
+                animate-pulse
+              "
+            />
 
-            <div className="absolute left-0 top-1/2 h-[2px] w-40 -translate-y-1/2 bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-60 blur-[1px] animate-pulse" />
+            <div
+              className="
+                absolute
+                bottom-0
+                left-1/2
+                h-[280px]
+                w-[3px]
+                -translate-x-1/2
+                bg-gradient-to-t
+                from-transparent
+                via-green-300
+                to-transparent
+                opacity-70
+                blur-[2px]
+                animate-pulse
+              "
+            />
 
-            <div className="absolute right-0 top-1/2 h-[2px] w-40 -translate-y-1/2 rotate-180 bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-60 blur-[1px] animate-pulse" />
+            {/* Horizontal */}
+
+            <div
+              className="
+                absolute
+                left-0
+                top-1/2
+                h-[3px]
+                w-[280px]
+                -translate-y-1/2
+                bg-gradient-to-r
+                from-transparent
+                via-green-300
+                to-transparent
+                opacity-70
+                blur-[2px]
+                animate-pulse
+              "
+            />
+
+            <div
+              className="
+                absolute
+                right-0
+                top-1/2
+                h-[3px]
+                w-[280px]
+                -translate-y-1/2
+                bg-gradient-to-l
+                from-transparent
+                via-green-300
+                to-transparent
+                opacity-70
+                blur-[2px]
+                animate-pulse
+              "
+            />
+
+            {/* Diagonal rays */}
+
+            <div
+              className="
+                absolute
+                left-1/2
+                top-1/2
+                h-[500px]
+                w-[2px]
+                origin-center
+                -translate-x-1/2
+                -translate-y-1/2
+                rotate-45
+                bg-gradient-to-b
+                from-transparent
+                via-green-400/60
+                to-transparent
+                blur-[2px]
+              "
+            />
+
+            <div
+              className="
+                absolute
+                left-1/2
+                top-1/2
+                h-[500px]
+                w-[2px]
+                origin-center
+                -translate-x-1/2
+                -translate-y-1/2
+                -rotate-45
+                bg-gradient-to-b
+                from-transparent
+                via-emerald-300/60
+                to-transparent
+                blur-[2px]
+              "
+            />
 
           </div>
 
-          {/* =====================================
-              OUTER PORTAL
-          ===================================== */}
+          {/* =================================================
+              PORTAL SYSTEM
+          ================================================= */}
 
-          <div
-            className="
-              relative
-              h-[310px]
-              w-[310px]
-              rounded-full
-              animate-[spin_12s_linear_infinite]
-            "
-          >
+          <div className="relative h-[380px] w-[380px]">
 
-            {/* Outer glow */}
+            {/* Outer aura */}
+
+            <div
+              className="
+                absolute
+                -inset-[55px]
+                rounded-full
+                bg-green-400/[0.04]
+                blur-[35px]
+                animate-pulse
+              "
+            />
+
+            {/* Outer rotating ring */}
 
             <div
               className="
@@ -175,22 +355,24 @@ const NexoraIntro = ({ onFinish }) => {
                 inset-0
                 rounded-full
                 border
-                border-green-400/30
-                shadow-[0_0_30px_rgba(34,197,94,0.35),0_0_80px_rgba(34,197,94,0.2),0_0_140px_rgba(34,197,94,0.12)]
+                border-green-300/40
+                shadow-[0_0_35px_rgba(34,197,94,0.45),0_0_90px_rgba(34,197,94,0.3),0_0_180px_rgba(34,197,94,0.15)]
+                animate-[spin_14s_linear_infinite]
               "
             />
 
-            {/* Second ring */}
+            {/* Outer broken energy ring */}
 
             <div
               className="
                 absolute
-                inset-[14px]
+                inset-[12px]
                 rounded-full
-                border-2
-                border-green-400/50
+                border-[3px]
                 border-dashed
-                shadow-[0_0_20px_rgba(34,197,94,0.3)]
+                border-green-400/60
+                shadow-[0_0_30px_rgba(34,197,94,0.35)]
+                animate-[spin_8s_linear_infinite_reverse]
               "
             />
 
@@ -202,73 +384,191 @@ const NexoraIntro = ({ onFinish }) => {
                 inset-[30px]
                 rounded-full
                 border
-                border-emerald-300/40
-                shadow-[inset_0_0_30px_rgba(34,197,94,0.3)]
+                border-emerald-300/50
+                shadow-[0_0_25px_rgba(52,211,153,0.4),inset_0_0_35px_rgba(34,197,94,0.25)]
+                animate-[spin_10s_linear_infinite]
               "
             />
 
-            {/* Portal light */}
+            {/* Inner rotating ring */}
 
             <div
               className="
                 absolute
                 inset-[48px]
                 rounded-full
-                bg-[radial-gradient(circle,rgba(34,197,94,0.3)_0%,rgba(16,185,129,0.08)_35%,rgba(0,0,0,0.9)_70%)]
-                shadow-[inset_0_0_60px_rgba(34,197,94,0.5),0_0_40px_rgba(34,197,94,0.25)]
+                border-2
+                border-green-400/30
+                border-dotted
+                animate-[spin_6s_linear_infinite_reverse]
               "
             />
 
-            {/* Rotating energy */}
-
-            <div
-              className="
-                absolute
-                left-1/2
-                top-0
-                h-20
-                w-3
-                -translate-x-1/2
-                rounded-full
-                bg-green-300
-                shadow-[0_0_15px_#22c55e,0_0_40px_#22c55e]
-              "
-            />
+            {/* =================================================
+                PORTAL CORE
+            ================================================= */}
 
             <div
               className="
                 absolute
-                bottom-0
-                left-1/2
-                h-16
-                w-2
-                -translate-x-1/2
+                inset-[65px]
+                overflow-hidden
                 rounded-full
-                bg-emerald-300
-                shadow-[0_0_15px_#34d399,0_0_40px_#34d399]
+                bg-[#010603]
+                shadow-[inset_0_0_50px_rgba(34,197,94,0.9),inset_0_0_110px_rgba(34,197,94,0.4),0_0_50px_rgba(34,197,94,0.5),0_0_100px_rgba(34,197,94,0.3)]
               "
-            />
+            >
+
+              {/* Core glow */}
+
+              <div
+                className="
+                  absolute
+                  left-1/2
+                  top-1/2
+                  h-[180px]
+                  w-[180px]
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  rounded-full
+                  bg-green-400/[0.12]
+                  blur-[45px]
+                  animate-pulse
+                "
+              />
+
+              {/* Core vortex */}
+
+              <div
+                className="
+                  absolute
+                  left-1/2
+                  top-1/2
+                  h-[135px]
+                  w-[135px]
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  rounded-full
+                  border
+                  border-green-300/40
+                  shadow-[0_0_35px_rgba(34,197,94,0.5),inset_0_0_35px_rgba(34,197,94,0.4)]
+                  animate-[spin_5s_linear_infinite]
+                "
+              />
+
+              {/* Core center */}
+
+              <div
+                className="
+                  absolute
+                  left-1/2
+                  top-1/2
+                  h-[75px]
+                  w-[75px]
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  rounded-full
+                  bg-[radial-gradient(circle,rgba(134,239,172,0.8)_0%,rgba(34,197,94,0.3)_25%,rgba(0,0,0,0.95)_70%)]
+                  shadow-[0_0_30px_rgba(74,222,128,0.9),0_0_70px_rgba(34,197,94,0.5)]
+                  animate-pulse
+                "
+              />
+
+            </div>
+
+            {/* =================================================
+                ENERGY POINTS
+            ================================================= */}
+
+            <div className="absolute inset-0 animate-[spin_10s_linear_infinite]">
+
+              <span
+                className="
+                  absolute
+                  left-1/2
+                  top-[-5px]
+                  h-10
+                  w-2
+                  -translate-x-1/2
+                  rounded-full
+                  bg-green-200
+                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e,0_0_60px_#22c55e]
+                "
+              />
+
+              <span
+                className="
+                  absolute
+                  bottom-[-5px]
+                  left-1/2
+                  h-10
+                  w-2
+                  -translate-x-1/2
+                  rounded-full
+                  bg-green-300
+                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                "
+              />
+
+              <span
+                className="
+                  absolute
+                  left-[-5px]
+                  top-1/2
+                  h-2
+                  w-10
+                  -translate-y-1/2
+                  rounded-full
+                  bg-green-300
+                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                "
+              />
+
+              <span
+                className="
+                  absolute
+                  right-[-5px]
+                  top-1/2
+                  h-2
+                  w-10
+                  -translate-y-1/2
+                  rounded-full
+                  bg-green-300
+                  shadow-[0_0_12px_#86efac,0_0_30px_#22c55e]
+                "
+              />
+
+            </div>
 
           </div>
 
-          {/* =====================================
-              CENTER LOGO
-          ===================================== */}
+          {/* =================================================
+              NEXORA LOGO
+          ================================================= */}
 
-          <div className="absolute flex flex-col items-center justify-center">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
 
-            <div className="relative">
+            <div className="relative flex flex-col items-center">
 
-              <div className="absolute inset-0 blur-2xl bg-green-400/30" />
+              <div
+                className="
+                  absolute
+                  inset-0
+                  bg-green-400/30
+                  blur-[30px]
+                "
+              />
 
               <h1
                 className="
                   relative
+                  whitespace-nowrap
                   text-5xl
                   font-black
-                  tracking-[0.28em]
+                  tracking-[0.32em]
                   text-white
-                  drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]
+                  drop-shadow-[0_0_10px_rgba(134,239,172,0.9)]
+                  drop-shadow-[0_0_30px_rgba(34,197,94,0.7)]
                 "
               >
                 NEXORA
@@ -278,55 +578,86 @@ const NexoraIntro = ({ onFinish }) => {
 
           </div>
 
-          {/* =====================================
-              TEXT
-          ===================================== */}
+          {/* =================================================
+              WELCOME TEXT
+          ================================================= */}
 
-          <div className="mt-14 text-center">
+          <div className="mt-16 text-center">
 
             <p
               className="
-                text-xs
+                text-sm
                 font-semibold
                 uppercase
-                tracking-[0.55em]
-                text-green-400
+                tracking-[0.6em]
+                text-green-300
+                drop-shadow-[0_0_12px_rgba(74,222,128,0.8)]
                 animate-pulse
               "
             >
-              Welcome Developers
+              WELCOME DEVELOPERS
             </p>
 
-            <p className="mt-4 text-sm tracking-[0.3em] text-gray-500">
+            <p
+              className="
+                mt-4
+                text-xs
+                font-medium
+                uppercase
+                tracking-[0.45em]
+                text-gray-500
+              "
+            >
               BUILD • CONNECT • CREATE
             </p>
 
           </div>
 
-          {/* =====================================
-              LOADING LINE
-          ===================================== */}
+          {/* =================================================
+              LOADING PROGRESS
+          ================================================= */}
 
-          <div className="mt-8 h-[2px] w-48 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-9">
 
-            <div
-              className="
-                h-full
-                w-full
-                origin-left
-                animate-[scaleX_3.2s_ease-in-out_forwards]
-                bg-gradient-to-r
-                from-transparent
-                via-green-400
-                to-transparent
-              "
-            />
+            <div className="h-[2px] w-56 overflow-hidden rounded-full bg-white/10">
+
+              <div
+                className="
+                  h-full
+                  w-full
+                  origin-left
+                  bg-gradient-to-r
+                  from-transparent
+                  via-green-300
+                  to-transparent
+                  animate-[scaleX_3.7s_ease-in-out_forwards]
+                "
+              />
+
+            </div>
+
+            <p className="mt-3 text-[10px] uppercase tracking-[0.4em] text-gray-600">
+              Initializing Nexora
+            </p>
 
           </div>
 
         </div>
 
       </div>
+
+      {/* =================================================
+          VIGNETTE
+      ================================================= */}
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          shadow-[inset_0_0_180px_rgba(0,0,0,0.9)]
+        "
+      />
 
     </div>
   );
@@ -362,15 +693,15 @@ const AppRoutes = () => {
 
   const [showIntro, setShowIntro] = useState(true);
 
-  const finishIntro = () => {
+  const finishIntro = useCallback(() => {
     setShowIntro(false);
-  };
+  }, []);
 
   return (
     <BrowserRouter>
 
       {/* =========================================
-          NEXORA INTRO
+          NEXORA SPLASH
       ========================================= */}
 
       {showIntro && (
@@ -385,9 +716,7 @@ const AppRoutes = () => {
 
         <Routes>
 
-          {/* =================================
-              PUBLIC PAGES
-          ================================= */}
+          {/* PUBLIC */}
 
           <Route
             path="/"
@@ -470,9 +799,7 @@ const AppRoutes = () => {
             }
           />
 
-          {/* =================================
-              PROTECTED DASHBOARD
-          ================================= */}
+          {/* PROTECTED */}
 
           <Route element={<ProtectedRoute />}>
 
@@ -559,14 +886,13 @@ const AppRoutes = () => {
 
           </Route>
 
-          {/* =================================
-              404
-          ================================= */}
+          {/* 404 */}
 
           <Route
             path="*"
             element={
               <MainLayout>
+
                 <div className="min-h-[70vh] flex items-center justify-center bg-gray-950 text-white">
 
                   <div className="text-center">
@@ -582,6 +908,7 @@ const AppRoutes = () => {
                   </div>
 
                 </div>
+
               </MainLayout>
             }
           />
